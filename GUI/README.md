@@ -1,0 +1,1 @@
+# Folder para la creacion de la interfaz de usuario y el manejo de idiomas

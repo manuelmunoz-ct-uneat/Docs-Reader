@@ -1,0 +1,1 @@
+# Folder para manejo del archivo word
