@@ -1,6 +1,7 @@
 from widget.ButtonWidget import QuestionButtons, AnswerButtons
 from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QDockWidget, QPushButton
 from PySide6.QtCore import Qt
+from widget.ControlWidget import ControlWidget
 
 # Necesita una (y solo una) instancia de QApplication por aplicación.
 # Pase sys.argv para permitir argumentos de línea de comandos para su aplicación.
@@ -11,29 +12,15 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("My App")
-        self.resize(750, 500)
+        self.setWindowTitle("Lector de documentos Word")
         
-        mainScreen = QWidget()
-        sideBar = QVBoxLayout()
-        dockArea = QDockWidget("Controls")
-
-        questionWidget = QuestionButtons()
-        answerWidget = AnswerButtons()
-
-        sideBar.addWidget(questionWidget)
-        sideBar.addWidget(answerWidget)
-
-        mainScreen.setLayout(sideBar)
-
-        dockArea.setWidget(mainScreen)
-        dockArea.setFloating(False)
+        controlPanel = ControlWidget()
 
         self.setCentralWidget(QPushButton("Test"))
-        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dockArea)
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, controlPanel)
 
 window = MainWindow()
-window.show()
+window.showMaximized()
 
 # Empieza el ciclo de eventos de Qt
 app.exec()
