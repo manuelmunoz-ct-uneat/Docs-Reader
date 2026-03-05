@@ -1,7 +1,7 @@
-from widget.ButtonWidget import QuestionButtons, AnswerButtons
-from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QDockWidget, QPushButton
+import os
 from PySide6.QtCore import Qt
-from widget.ControlWidget import ControlWidget
+from widget import ControlWidget, WordVisualizer
+from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QFileDialog, QPushButton
 
 # Necesita una (y solo una) instancia de QApplication por aplicación.
 # Pase sys.argv para permitir argumentos de línea de comandos para su aplicación.
@@ -13,11 +13,18 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.setWindowTitle("Lector de documentos Word")
-        
-        controlPanel = ControlWidget()
+        fileOpenButton = QPushButton("File open")
 
-        self.setCentralWidget(QPushButton("Test"))
-        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, controlPanel)
+
+        file = QFileDialog.getOpenFileName(self, "Select a file", os.getcwd())
+        
+        controlPanel1 = ControlWidget.ControlWidget("Controles")
+        controlPanel2 = ControlWidget.ControlWidget("Visualizador")
+
+
+        self.setCentralWidget(WordVisualizer.WordUploadWidget())
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, controlPanel1)
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, controlPanel2)
 
 window = MainWindow()
 window.showMaximized()
