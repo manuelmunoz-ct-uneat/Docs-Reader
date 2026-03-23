@@ -32,9 +32,10 @@ class WordUploadWidget(QWidget):
             option = self.options.index(self.combo.currentText())
 
             if option == 0:
-                file = self.getFileName()
-                # FileReader().setDoc(file)
-                # FileReader().read()
+                fileLocation = self.getFileName()
+                document = FileReader(fileLocation)
+                paragraph = document.read_paragraphs()
+                print(paragraph)
             elif option == 1:
                 response = self.getFileNames()
             elif option == 2:
@@ -53,6 +54,7 @@ class WordUploadWidget(QWidget):
             filter=self.FILE_FILTER,
         )
         self.textbox.setText(str(response))
+        return str(response[0])
 
     def getFileNames(self):
         response = QFileDialog.getOpenFileNames(
