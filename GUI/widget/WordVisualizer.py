@@ -1,7 +1,7 @@
 import sys
 import os
-from PySide6.QtWidgets import (QApplication, QWidget, QPushButton, QTextEdit, QComboBox, QFileDialog,
-                            QHBoxLayout, QVBoxLayout)
+from PySide6.QtWidgets import (QApplication, QWidget, QPushButton, QTextEdit, QComboBox, QFileDialog, QHBoxLayout, QVBoxLayout)
+from word_maneger.FileReader import FileReader
 
 class WordUploadWidget(QWidget):
     FILE_FILTER = 'Word file (*.doc *.docx)'
@@ -32,7 +32,9 @@ class WordUploadWidget(QWidget):
             option = self.options.index(self.combo.currentText())
 
             if option == 0:
-                response = self.getFileName()
+                file = self.getFileName()
+                # FileReader().setDoc(file)
+                # FileReader().read()
             elif option == 1:
                 response = self.getFileNames()
             elif option == 2:

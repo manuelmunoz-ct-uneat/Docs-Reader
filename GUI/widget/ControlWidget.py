@@ -1,4 +1,4 @@
-from widget.ButtonWidget import QuestionButtons, AnswerButtons
+from .ButtonWidget import QuestionButtons, AnswerButtons
 from PySide6.QtWidgets import QWidget, QDockWidget, QVBoxLayout
 from PySide6.QtCore import Qt
 

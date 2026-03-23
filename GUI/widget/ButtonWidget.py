@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QVBoxLayout, QWidget
-from buttons.Button import Button
+from GUI.components.Button import Button
 
 class QuestionButtons(QWidget):
     def __init__(self):
