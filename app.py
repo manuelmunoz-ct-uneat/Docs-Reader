@@ -14,9 +14,6 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle("Lector de documentos Word")
         fileOpenButton = QPushButton("File open")
-
-
-        file = QFileDialog.getOpenFileName(self, "Select a file", os.getcwd())
         
         controlPanel1 = ControlWidget.ControlWidget("Controles")
         controlPanel2 = ControlWidget.ControlWidget("Visualizador")
