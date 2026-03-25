@@ -13,11 +13,9 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.setWindowTitle("Lector de documentos Word")
-        fileOpenButton = QPushButton("File open")
         
         controlPanel1 = ControlWidget.ControlWidget("Controles")
         controlPanel2 = ControlWidget.ControlWidget("Visualizador")
-
 
         self.setCentralWidget(WordVisualizer.WordUploadWidget())
         self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, controlPanel1)
