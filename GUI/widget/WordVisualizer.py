@@ -13,7 +13,7 @@ class WordUploadWidget(QWidget):
         layout = QVBoxLayout()
         self.setLayout(layout)
 
-        self.options = ('Open file', 'Open files', 'Select Directory', 'Save file')
+        self.options = ('Open file')
 
         self.combo = QComboBox()
         self.combo.addItems(self.options)
@@ -36,12 +36,6 @@ class WordUploadWidget(QWidget):
                 paragraph = document.read_paragraphs()
                 response =  paragraph
                 self.textbox.append(response)
-            elif option == 1:
-                response = self.getFileNames()
-            elif option == 2:
-                response = self.getDirectory()
-            elif option == 3:
-                response = self.getSaveFileName()
             else:
                 print('Got Nothing')
 
@@ -54,29 +48,3 @@ class WordUploadWidget(QWidget):
             filter=self.FILE_FILTER,
         )
         return str(response[0])
-
-    def getFileNames(self):
-        response = QFileDialog.getOpenFileNames(
-            self,
-            'Select file(s)',
-            "",
-            filter=self.FILE_FILTER,
-        )
-        self.textbox.setText(str(response))
-
-
-    def getDirectory(self):
-        response = QFileDialog.getExistingDirectory(
-            self,
-            # caption='Select a folder'
-        )
-        self.textbox.setText(str(response))
-
-    def getSaveFileName(self):
-        response = QFileDialog.getSaveFileName(
-            parent=self,
-            caption='Select a data file',
-            dir= 'Data File.dat',
-            filter=self.FILE_FILTER,
-        )
-        self.textbox.setText(str(response))
