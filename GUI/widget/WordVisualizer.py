@@ -1,4 +1,3 @@
-import sys
 import os
 from PySide6.QtWidgets import (QApplication, QWidget, QPushButton, QTextEdit, QComboBox, QFileDialog, QHBoxLayout, QVBoxLayout)
 from word_maneger.FileReader import FileReader
@@ -35,7 +34,8 @@ class WordUploadWidget(QWidget):
                 fileLocation = self.getFileName()
                 document = FileReader(fileLocation)
                 paragraph = document.read_paragraphs()
-                print(paragraph)
+                response =  paragraph
+                self.textbox.append(response)
             elif option == 1:
                 response = self.getFileNames()
             elif option == 2:
@@ -48,19 +48,18 @@ class WordUploadWidget(QWidget):
     def getFileName(self):
 
         response = QFileDialog.getOpenFileName(
-            parent=self,
-            caption='Select a file',
-            dir=os.getcwd(),
+            self,
+            'Select a file',
+            "",
             filter=self.FILE_FILTER,
         )
-        self.textbox.setText(str(response))
         return str(response[0])
 
     def getFileNames(self):
         response = QFileDialog.getOpenFileNames(
-            parent=self,
-            caption='Select file(s)',
-            dir=os.getcwd(),
+            self,
+            'Select file(s)',
+            "",
             filter=self.FILE_FILTER,
         )
         self.textbox.setText(str(response))

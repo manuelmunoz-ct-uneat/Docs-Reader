@@ -1,7 +1,6 @@
-import os
 from PySide6.QtCore import Qt
 from GUI.widget import ControlWidget, WordVisualizer
-from PySide6.QtWidgets import QApplication, QMainWindow, QFileDialog, QPushButton
+from PySide6.QtWidgets import QApplication, QMainWindow
 
 # Necesita una (y solo una) instancia de QApplication por aplicación.
 # Pase sys.argv para permitir argumentos de línea de comandos para su aplicación.

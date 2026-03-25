@@ -37,6 +37,6 @@ class FileReader:
                 for row in elem.rows:
                     questionSet[f"{row.cells[0].text}"] = f"{row.cells[1].text}"
         
-        print(json.dumps(questionSet, ensure_ascii=False))
+        return json.dumps(questionSet, ensure_ascii=False)
                                          
 
