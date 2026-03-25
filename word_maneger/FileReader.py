@@ -1,6 +1,7 @@
 from docx import Document
 from docx.text.paragraph import Paragraph
 from docx.table import Table
+import json
 
 class FileReader:
     def __init__(self, doc_path=None):
@@ -21,17 +22,21 @@ class FileReader:
         return self.document
 
     def read_paragraphs(self):
+        questionSet = {}
         if self.document is None:
             raise ValueError("No hay documento cargado")
     
         data = self.document.iter_inner_content()
         for elem in data:
             if isinstance(elem, Paragraph):
-                if elem.text:
-                    print(f"Paragraph: {elem.text}")
+                for run in elem.runs:
+                    if elem.text and elem:
+                        color = run.font.color.rgb
+                        questionSet[f"{elem.text}"] = f"{color}"
             elif isinstance(elem, Table):
                 for row in elem.rows:
-                    print(f"Table: {row.cells[0].text} -> {row.cells[1].text}")
-                   
-                        
+                    questionSet[f"{row.cells[0].text}"] = f"{row.cells[1].text}"
+        
+        print(json.dumps(questionSet, ensure_ascii=False))
+                                         
 
