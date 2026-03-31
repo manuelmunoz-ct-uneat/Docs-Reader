@@ -1,6 +1,6 @@
-import os
-from PySide6.QtWidgets import (QApplication, QWidget, QPushButton, QTextEdit, QComboBox, QFileDialog, QHBoxLayout, QVBoxLayout)
+from PySide6.QtWidgets import (QApplication, QWidget, QPushButton, QTextEdit, QComboBox, QFileDialog, QHBoxLayout, QVBoxLayout, QTextBrowser)
 from word_maneger.FileReader import FileReader
+from GUI.components.TextBox import JsonFormater
 
 class WordUploadWidget(QWidget):
     FILE_FILTER = 'Word file (*.doc *.docx)'
@@ -16,14 +16,14 @@ class WordUploadWidget(QWidget):
         self.options = ('Open file')
 
         self.combo = QComboBox()
-        self.combo.addItems(self.options)
+        self.combo.addItem(self.options)
         layout.addWidget(self.combo)
 
         btn = QPushButton('Launch')
         btn.clicked.connect(self.launchDialog)
         layout.addWidget(btn)
 
-        self.textbox = QTextEdit() # Cambiar a un visualizador del texto de word despues de que se abre
+        self.textbox = JsonFormater()
         layout.addWidget(self.textbox)
     
 
@@ -33,9 +33,8 @@ class WordUploadWidget(QWidget):
             if option == 0:
                 fileLocation = self.getFileName()
                 document = FileReader(fileLocation)
-                paragraph = document.read_paragraphs()
-                response =  paragraph
-                self.textbox.append(response)
+                paragraph = document.parse_to_json()
+                self.textbox.setJson(paragraph)
             else:
                 print('Got Nothing')
 
