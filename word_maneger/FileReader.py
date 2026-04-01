@@ -94,11 +94,26 @@ class FileReader:
 
         for elem, origen in self.iter_all_blocks(self.document):
             if isinstance(elem, Table):
-                text = ""
-                for row in elem.rows:
-                    text = row.cells[0].text
-                numPr = elem._element.xpath("./w:pPr/w:numPr")
-                self.setData(numPr, data, idx, text, origen or "tabla")
+                matriz: dict[int, dict[int, str]] = {}
+                for i, row in enumerate(elem.rows):
+                    matriz[i] = {}
+                    for j, cell in enumerate(row.cells):
+                        matriz[i][j] = cell.text.strip()
+ 
+                # Ignorar tablas completamente vacías
+                tiene_contenido = any(
+                    text for fila in matriz.values() for text in fila.values()
+                )
+                if not tiene_contenido:
+                    continue
+ 
+                data[idx] = {
+                    "texto":    "",          # las tablas no tienen texto único
+                    "nivel":    None,
+                    "lista_id": None,
+                    "origen":   origen or "tabla",
+                    "matriz":   matriz       # ← datos bi-dimensionales
+                }
                 idx += 1
 
             elif isinstance(elem, _RawPara):
@@ -124,19 +139,52 @@ class FileReader:
     # ------------------------------------------------------------------
     def parse_to_json(self):
         data = self.read_paragraphs()
-
+ 
         resultado       = {}
         num_pregunta    = 0
         pregunta_actual = None
         pregunta_lista  = None
         opcion_actual   = None
-
+ 
         for _, item in data.items():
             texto    = item["texto"]
             nivel    = item["nivel"]
             lista_id = item.get("lista_id")
             origen   = item.get("origen", "parrafo")
-
+            matriz   = item.get("matriz")   # presente solo en tablas
+ 
+            # ── Tabla: insertar sus filas como opciones de la pregunta activa ──
+            if matriz is not None and pregunta_actual is not None:
+                OK_WORDS  = {"CORRECTA", "VERDADERA"}
+                NOK_WORDS = {"INCORRECTA", "FALSA"}
+ 
+                for fila in matriz.values():
+                    txt_opcion    = fila.get(0, "").strip()
+                    txt_respuesta = fila.get(1, "").strip()
+                    if not txt_opcion:
+                        continue
+ 
+                    letra = chr(ord("a") + len(pregunta_actual["ops"]))
+ 
+                    # Intentar detectar ok desde el texto de la opción (inline)
+                    ok_val, limpio = self._parse_inline_feedback(txt_opcion)
+ 
+                    # Si no había feedback inline, leerlo de la columna 1
+                    if ok_val is None and txt_respuesta:
+                        respuesta_upper = txt_respuesta.rstrip(".").upper()
+                        if respuesta_upper in OK_WORDS:
+                            ok_val = True
+                        elif respuesta_upper in NOK_WORDS:
+                            ok_val = False
+ 
+                    pregunta_actual["ops"][letra] = {
+                        "txt":  limpio,
+                        "ok":   ok_val,
+                        "resp": txt_respuesta or None
+                    }
+                    opcion_actual = None if ok_val is not None else letra
+                continue
+ 
             # FIX 1: opcion que llego por header
             # Caso A: tiene nivel=0 en header  → opcion
             # Caso B: nivel=None pero texto empieza con "a) b) c)..." hardcodeado
@@ -145,7 +193,7 @@ class FileReader:
                     nivel = 1
                 elif nivel is None and _re.match(r'^[a-dA-D]\)', texto.strip()):
                     nivel = 1
-
+ 
             # FIX 2: nivel=0 con lista_id diferente al de la pregunta activa
             #        (Word rompio numeracion al cruzar pagina)
             if (nivel == 0
@@ -154,7 +202,7 @@ class FileReader:
                     and pregunta_lista is not None
                     and lista_id != pregunta_lista):
                 nivel = 1
-
+ 
             # Nueva pregunta
             if nivel == 0:
                 num_pregunta += 1
@@ -169,7 +217,7 @@ class FileReader:
                 pregunta_lista  = lista_id
                 opcion_actual   = None
                 continue
-
+ 
             # Opcion
             if nivel == 1 and pregunta_actual is not None:
                 letra          = chr(ord("a") + len(pregunta_actual["ops"]))
@@ -179,7 +227,7 @@ class FileReader:
                 pregunta_actual["ops"][letra] = {"txt": limpio, "ok": ok_val}
                 opcion_actual = None if ok_val is not None else letra
                 continue
-
+ 
             # Feedback en parrafo separado
             if nivel is None and pregunta_actual is not None and opcion_actual is not None:
                 t = texto.rstrip(".")
@@ -187,12 +235,12 @@ class FileReader:
                     pregunta_actual["ops"][opcion_actual]["ok"] = True
                 elif t in ("INCORRECTA", "FALSA"):
                     pregunta_actual["ops"][opcion_actual]["ok"] = False
-
+ 
         for bloque in resultado.values():
             correctas = sum(1 for op in bloque["ops"].values() if op["ok"] is True)
             bloque["multi"] = correctas > 1 if bloque["ops"] else False
-
-        print(json.dumps(resultado, indent=4, ensure_ascii=False))
+ 
+        print(json.dumps(resultado[2], indent=4, ensure_ascii=False))
         return resultado
 
     # ------------------------------------------------------------------
