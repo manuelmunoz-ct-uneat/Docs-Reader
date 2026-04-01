@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from PySide6.QtWidgets import (QApplication, QWidget, QPushButton, QTextEdit, QComboBox, QFileDialog, QHBoxLayout, QVBoxLayout, QTextBrowser)
 from word_maneger.FileReader import FileReader
 from GUI.components.TextBox import JsonFormater
@@ -40,10 +42,10 @@ class WordUploadWidget(QWidget):
 
     def getFileName(self):
 
-        response = QFileDialog.getOpenFileName(
+        response, _ = QFileDialog.getOpenFileName(
             self,
             'Select a file',
             "",
             filter=self.FILE_FILTER,
         )
-        return str(response[0])
+        return Path(response)
