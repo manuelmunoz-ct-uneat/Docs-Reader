@@ -3,6 +3,6 @@ from PreguntasDto import Pregunta
 from Dtos.RespuestaConValor import RespuestaConValor
 
 @dataclass(kw_only=True)
-class OpcionMultipleDto(Pregunta):
+class VerdaderoFalsoDto(Pregunta):
     respuestas: RespuestaConValor
 
