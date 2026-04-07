@@ -1,16 +1,11 @@
 from dataclasses import dataclass
 from PreguntasDto import Pregunta
+from RespuestaDto import Respuesta
 
 @dataclass(kw_only=True)
 class OpcionMultipleDto(Pregunta):
-    unica_respuesta: bool
-    barajear_respuestas: bool
-    respuestas: RespuestaMultiple
+    respuestas: Respuesta
 
-@dataclass
-class RespuestaMultiple(dict):
-    pregunta: str
-    valor: str
-    retroalimentacion: str
+
 
 
