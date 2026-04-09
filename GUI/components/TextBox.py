@@ -21,15 +21,19 @@ class JsonFormater(QTextBrowser):
                         f'</p>'
                     )
                 else:
-                    color = "green" if opcion["ok"] is True else "red" if opcion["ok"] is False else "black"
+                    color = "green" if opcion["ok"] is True else "red" if opcion["ok"] is False else "FloralWhite"
                     html_content += (
                         f'<p style="margin-left:20px;">'
                         f'<b>{letra})</b> '
-                        f'<span style="color:{color}">{html.escape(str(opcion["txt"]))}</span>'
+                        f'<span style="color:{color}">{html.escape(str(opcion["txt"]))}</span><br>'
+                        f'<span style="color:fuchsia">{html.escape(str(opcion["retro"]))}</span>'
                         f'</p>'
                     )
 
         self.setHtml(html_content)
+        font = self.font()
+        font.setPointSize(12)
+        self.setFont(font)
 
     def _is_hex_color(self, value: str):
         if len(value) == 6:
