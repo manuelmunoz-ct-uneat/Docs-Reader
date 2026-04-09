@@ -1,8 +1,7 @@
 import zipfile
 import re as _re
-import os
-import json
 from lxml import etree
+import json
 
 from docx import Document
 from docx.table import Table, _Cell
@@ -41,7 +40,7 @@ class _RawPara:
 
 
 class FileReader:
-    def __init__(self, doc_path: os.PathLike):
+    def __init__(self, doc_path=None):
         self.doc_path = doc_path
         self.document = None
         self._hdr_map = {}      # rId -> [_RawPara, ...]
@@ -61,7 +60,7 @@ class FileReader:
     # ------------------------------------------------------------------
     def _build_header_map(self):
         hdr_map = {}
-        with zipfile.ZipFile(self.doc_path) as z:
+        with zipfile.ZipFile(self.doc_path) as z: # type: ignore[attr-defined]
             rels_raw = z.read("word/_rels/document.xml.rels").decode("utf-8")
             rid_to_file = {}
             for m in _re.finditer(
@@ -94,19 +93,20 @@ class FileReader:
 
         for elem, origen in self.iter_all_blocks(self.document):
             if isinstance(elem, Table):
+                # Construir matriz 2D: { fila: { columna: texto_celda } }
                 matriz: dict[int, dict[int, str]] = {}
                 for i, row in enumerate(elem.rows):
                     matriz[i] = {}
-                    for j, cell in enumerate(row.cells):
+                    for j, cell in enumerate(row.cells):   # 'cell', no 'elem'
                         matriz[i][j] = cell.text.strip()
- 
+
                 # Ignorar tablas completamente vacías
                 tiene_contenido = any(
                     text for fila in matriz.values() for text in fila.values()
                 )
                 if not tiene_contenido:
                     continue
- 
+
                 data[idx] = {
                     "texto":    "",          # las tablas no tienen texto único
                     "nivel":    None,
@@ -117,11 +117,11 @@ class FileReader:
                 idx += 1
 
             elif isinstance(elem, _RawPara):
-                text = elem.text.strip()
-                if not text:
+                texto = elem.text.strip()
+                if not texto:
                     continue
                 numPr_nodes = elem._element.findall(f".//{W_NUMPR}")
-                self._setData_raw(numPr_nodes, data, idx, text, origen or "parrafo")
+                self._setData_raw(numPr_nodes, data, idx, texto, origen or "parrafo")
                 idx += 1
 
             else:  # Paragraph
@@ -139,52 +139,46 @@ class FileReader:
     # ------------------------------------------------------------------
     def parse_to_json(self):
         data = self.read_paragraphs()
- 
+
         resultado       = {}
         num_pregunta    = 0
         pregunta_actual = None
         pregunta_lista  = None
         opcion_actual   = None
- 
+
         for _, item in data.items():
             texto    = item["texto"]
             nivel    = item["nivel"]
             lista_id = item.get("lista_id")
             origen   = item.get("origen", "parrafo")
             matriz   = item.get("matriz")   # presente solo en tablas
- 
+
             # ── Tabla: insertar sus filas como opciones de la pregunta activa ──
             if matriz is not None and pregunta_actual is not None:
-                OK_WORDS  = {"CORRECTA", "VERDADERA"}
-                NOK_WORDS = {"INCORRECTA", "FALSA"}
- 
                 for fila in matriz.values():
                     txt_opcion    = fila.get(0, "").strip()
                     txt_respuesta = fila.get(1, "").strip()
                     if not txt_opcion:
                         continue
- 
+
                     letra = chr(ord("a") + len(pregunta_actual["ops"]))
- 
+
                     # Intentar detectar ok desde el texto de la opción (inline)
-                    ok_val, limpio = self._parse_inline_feedback(txt_opcion)
- 
+                    ok_val, limpio, feedback_inline = self._parse_inline_feedback(txt_opcion)
+
                     # Si no había feedback inline, leerlo de la columna 1
                     if ok_val is None and txt_respuesta:
-                        respuesta_upper = txt_respuesta.rstrip(".").upper()
-                        if respuesta_upper in OK_WORDS:
-                            ok_val = True
-                        elif respuesta_upper in NOK_WORDS:
-                            ok_val = False
- 
+                        ok_val = self._classify_feedback(txt_respuesta)
+
                     pregunta_actual["ops"][letra] = {
-                        "txt":  limpio,
-                        "ok":   ok_val,
-                        "resp": txt_respuesta or None
+                        "txt":   limpio,
+                        "ok":    ok_val,
+                        "resp":  txt_respuesta or None,
+                        "retro": feedback_inline if feedback_inline else None
                     }
                     opcion_actual = None if ok_val is not None else letra
                 continue
- 
+
             # FIX 1: opcion que llego por header
             # Caso A: tiene nivel=0 en header  → opcion
             # Caso B: nivel=None pero texto empieza con "a) b) c)..." hardcodeado
@@ -193,7 +187,7 @@ class FileReader:
                     nivel = 1
                 elif nivel is None and _re.match(r'^[a-dA-D]\)', texto.strip()):
                     nivel = 1
- 
+
             # FIX 2: nivel=0 con lista_id diferente al de la pregunta activa
             #        (Word rompio numeracion al cruzar pagina)
             if (nivel == 0
@@ -202,7 +196,7 @@ class FileReader:
                     and pregunta_lista is not None
                     and lista_id != pregunta_lista):
                 nivel = 1
- 
+
             # Nueva pregunta
             if nivel == 0:
                 num_pregunta += 1
@@ -217,54 +211,97 @@ class FileReader:
                 pregunta_lista  = lista_id
                 opcion_actual   = None
                 continue
- 
+
             # Opcion
             if nivel == 1 and pregunta_actual is not None:
-                letra          = chr(ord("a") + len(pregunta_actual["ops"]))
-                # Limpiar prefijo hardcodeado "a)" / "b)" que Word mete en text-boxes
+                letra = chr(ord("a") + len(pregunta_actual["ops"]))
                 texto_sin_pref = _re.sub(r'^[a-dA-D]\)\s*', '', texto).strip()
-                ok_val, limpio = self._parse_inline_feedback(texto_sin_pref)
-                pregunta_actual["ops"][letra] = {"txt": limpio, "ok": ok_val}
+                ok_val, limpio, feedback_inline = self._parse_inline_feedback(texto_sin_pref)
+                pregunta_actual["ops"][letra] = {
+                    "txt":   limpio,
+                    "ok":    ok_val,
+                    "retro": feedback_inline if feedback_inline else None       # se rellena con inline o en el párrafo siguiente
+                }
                 opcion_actual = None if ok_val is not None else letra
                 continue
- 
-            # Feedback en parrafo separado
+
+            # Retroalimentación en párrafo separado (niv=None después de una opción)
             if nivel is None and pregunta_actual is not None and opcion_actual is not None:
-                t = texto.rstrip(".")
-                if t in ("CORRECTA", "VERDADERA"):
-                    pregunta_actual["ops"][opcion_actual]["ok"] = True
-                elif t in ("INCORRECTA", "FALSA"):
-                    pregunta_actual["ops"][opcion_actual]["ok"] = False
- 
+                ok = self._classify_feedback(texto)
+                if ok is not None:
+                    pregunta_actual["ops"][opcion_actual]["ok"]    = ok
+                    pregunta_actual["ops"][opcion_actual]["retro"] = texto or None
+                    opcion_actual = None   # consumido: evitar que el siguiente niv=None sobreescriba
+
         for bloque in resultado.values():
             correctas = sum(1 for op in bloque["ops"].values() if op["ok"] is True)
             bloque["multi"] = correctas > 1 if bloque["ops"] else False
- 
-        print(json.dumps(resultado[2], indent=4, ensure_ascii=False))
+
+        print(json.dumps(resultado, indent=4, ensure_ascii=False))
         return resultado
 
     # ------------------------------------------------------------------
-    # _parse_inline_feedback
+    # _classify_feedback
+    # Determina si un texto indica respuesta correcta, incorrecta o ninguna.
+    # Basado en PREFIJOS, no en palabras exactas → independiente de idioma.
+    #
+    # Positivos : CORRE…  (CORRECTA, CORRETA, CORRECT…)
+    #             VERD…   (VERDADERA, VERDADEIRO, VERDADE, VERDAD…)
+    #             TRUE, RICHTIG, JUSTE, JUSTO, CIERTO…
+    # Negativos : INCORRE… (INCORRECTA, INCORRETA, INCORRECT…)
+    #             FALS…    (FALSA, FALSO, FALSE…)
+    #             WRONG, FALSCH, FAUX…
+    #
+    # Se evalúa SOLO la primera palabra del texto (ignora explicaciones).
     # ------------------------------------------------------------------
-    @staticmethod
-    def _parse_inline_feedback(texto: str):
-        OK  = {"CORRECTA", "VERDADERA"}
-        NOK = {"INCORRECTA", "FALSA"}
+    _PREFIJOS_OK  = ("CORRE", "VERD", "TRUE", "RICHTIG", "JUSTE", "JUSTO", "CIERTO")
+    _PREFIJOS_NOK = ("INCORRE", "FALS", "WRONG", "FALSCH", "FAUX")
+
+    @classmethod
+    def _classify_feedback(cls, texto: str):
+        """
+        Devuelve True, False o None según si el texto indica
+        respuesta correcta, incorrecta o ninguna de las dos.
+        Analiza solo la primera palabra.
+        """
+        if not texto:
+            return None
+        primera = texto.split()[0].rstrip(".,;:").upper()
+        if any(primera.startswith(p) for p in cls._PREFIJOS_NOK):
+            return False
+        if any(primera.startswith(p) for p in cls._PREFIJOS_OK):
+            return True
+        return None
+
+    @classmethod
+    def _parse_inline_feedback(cls, texto: str):
+        """
+        Detecta feedback al FINAL del texto de una opción.
+        Ej: "Gamificación. CORRECTA." → (True,  "Gamificación.", "CORRECTA.")
+            "Verdadeiro."             → (None,  "Verdadeiro.", None)  ← texto completo, no tocar
+        Solo aplica cuando hay al menos DOS tokens (el texto + la palabra de feedback).
+        Devuelve: (ok_value, texto_limpio, texto_feedback)
+        """
         tokens = texto.rstrip().rstrip(".").split()
-        if not tokens:
-            return None, texto
-        ultima = tokens[-1].upper()
-        if ultima in OK | NOK:
+        # Si solo hay una palabra, es el texto de la opción, no feedback inline
+        if len(tokens) <= 1:
+            return None, texto, None
+        ultima = tokens[-1].rstrip(".,;:")
+        ok = cls._classify_feedback(ultima)
+        if ok is not None:
             limpio = " ".join(tokens[:-1]).rstrip(" .") + "."
-            return (True if ultima in OK else False), limpio
-        return None, texto
+            # Reconstruir el texto del feedback con el punto original
+            feedback_texto = ultima + "."
+            return ok, limpio, feedback_texto
+        return None, texto, None
 
     # ------------------------------------------------------------------
     # iter_block_items  (body / celdas)
     # ------------------------------------------------------------------
     def iter_block_items(self, parent, origen="parrafo"):
+
         if isinstance(parent, DocxDocument):
-            parent_elm = parent._element.body
+            parent_elm = parent.element.body # type: ignore[attr-defined]
         elif isinstance(parent, _Cell):
             parent_elm = parent._tc
         else:
@@ -272,9 +309,9 @@ class FileReader:
 
         for child in parent_elm.iterchildren():
             if child.tag.endswith("}p"):
-                yield Paragraph(child, parent), origen # type: ignore[arg-type]
+                yield Paragraph(child, parent), origen  # type: ignore[arg-type]
             elif child.tag.endswith("}tbl"):
-                table = Table(child, parent) # type: ignore[arg-type]
+                table = Table(child, parent)            # type: ignore[arg-type]
                 yield table, origen
                 for row in table.rows:
                     for cell in row.cells:
@@ -334,9 +371,9 @@ class FileReader:
         for i, child in enumerate(children):
             # Emitir el elemento del body
             if child.tag == W_P:
-                yield Paragraph(child, document), "parrafo"
+                yield Paragraph(child, document), "parrafo"  # type: ignore[arg-type]
             elif child.tag == W_TBL:
-                table = Table(child, document)
+                table = Table(child, document)               # type: ignore[arg-type]
                 yield table, "parrafo"
                 for row in table.rows:
                     for cell in row.cells:
@@ -352,17 +389,17 @@ class FileReader:
     # ------------------------------------------------------------------
     # setData  (python-docx / .xpath)
     # ------------------------------------------------------------------
-    def setData(self, numPr, data, idx, text, origen):
+    def setData(self, numPr, data, idx, texto, origen):
         if numPr:
             ilvl  = numPr[0].xpath("./w:ilvl")
             numid = numPr[0].xpath("./w:numId")
-            nivel    = int(ilvl[0].get(f"{{{W}}}val"))
+            nivel = int(ilvl[0].get(f"{{{W}}}val"))
             lista_id = int(numid[0].get(f"{{{W}}}val"))
         else:
             nivel = lista_id = None
 
         data[idx] = {
-            "texto":    text,
+            "texto":    texto,
             "nivel":    nivel,
             "lista_id": lista_id,
             "origen":   origen
@@ -386,5 +423,3 @@ class FileReader:
             "lista_id": lista_id,
             "origen":   origen
         }
-    
-    
