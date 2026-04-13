@@ -1,6 +1,7 @@
 import zipfile
 import re as _re
 from lxml import etree
+import json
 
 from docx import Document
 from docx.table import Table, _Cell
@@ -248,23 +249,16 @@ class FileReader:
             if matriz is not None:
                 if pregunta_actual is None:
                     continue
-                for fila in matriz.values():
-                    txt_op  = fila.get(0, "").strip()
-                    txt_res = fila.get(1, "").strip()
-                    if not txt_op:
-                        continue
-                    letra = chr(ord("a") + len(pregunta_actual["ops"]))
-                    ok_val, txt_limpio, retro_inline = self._split_feedback(txt_op)
-                    # si no hay feedback inline, intentar leerlo de columna 1
-                    if ok_val is None and txt_res:
-                        ok_val = self._classify_feedback(txt_res)
-                    pregunta_actual["ops"][letra] = {
-                        "txt":   txt_limpio if txt_limpio else txt_op,
-                        "ok":    ok_val,
-                        "resp":  txt_res or None,
-                        "retro": retro_inline or None,
-                    }
-                    opcion_actual = None if ok_val is not None else letra
+                # Si ya hay filas (fN) de una tabla anterior de esta misma
+                # pregunta (tabla discontinua por salto de página), continuar
+                # numerando desde el último índice en lugar de empezar en 0.
+                start_row = len(pregunta_actual["ops"])
+                for i, fila in enumerate(matriz.values(), start=start_row):
+                    pregunta_actual["ops"][f"f{i}"] = {}
+                    for j, columna in enumerate(fila.values()):
+                        pregunta_actual["ops"][f"f{i}"][f"c{j}"] = {
+                            "txt": columna
+                        }
                 continue
 
             # ── FIX A: opción en header con nivel=0 ó prefijo "a) b)"──
@@ -346,9 +340,13 @@ class FileReader:
 
         # ── Inferir multi-respuesta ────────────────────────────────────
         for bloque in resultado.values():
-            correctas = sum(1 for op in bloque["ops"].values() if op["ok"] is True)
-            bloque["multi"] = correctas > 1 if bloque["ops"] else False
+            if "ok" in bloque["ops"]:
+                resultado[num_pregunta]["tipo"] = "multi"
+                correctas = sum(1 for op in bloque["ops"].values() if op["ok"] is True)
+                bloque["multi"] = correctas > 1 if bloque["ops"] else False
 
+        with open("datos.json", "w", encoding="utf-8") as f:
+            json.dump(resultado, f, indent=4, ensure_ascii=False)
         return resultado
 
     # ══════════════════════════════════════════════════════════════════════

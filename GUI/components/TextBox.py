@@ -13,13 +13,19 @@ class JsonFormater(QTextBrowser):
             html_content += f"<p><b>Pregunta {num_pregunta}</b>: {html.escape(str(bloque['preg']))}</p>"
 
             for letra, opcion in bloque["ops"].items():
-                if "resp" in opcion:
-                    html_content += (
-                        f'<p style="margin-left:20px;">'
-                        f'<b>{letra})</b> '
-                        f'<span style="color:FloralWhite">{html.escape(str(opcion["txt"]))} -> {html.escape(str(opcion["resp"]))}</span>'
-                        f'</p>'
-                    )
+                if "f0" in bloque["ops"]: #TODO cambiar a verificacion por tipo de pregunta
+                    html_content += '<table border="1">'
+
+                    for fila_id, fila in bloque["ops"].items():
+                        html_content += '<tr>'
+
+                        for columna_id, columna in fila.items():
+                            html_content += f'<td>{html.escape(str(columna["txt"]))}</td>'
+
+                        html_content += '</tr>'
+
+                    html_content += '</table>'
+                    break
                 else:
                     color = "green" if opcion["ok"] is True else "red" if opcion["ok"] is False else "FloralWhite"
                     html_content += (
