@@ -340,13 +340,14 @@ class FileReader:
 
         # ── Inferir multi-respuesta ────────────────────────────────────
         for bloque in resultado.values():
-            if "ok" in bloque["ops"]:
-                resultado[num_pregunta]["tipo"] = "multi"
-                correctas = sum(1 for op in bloque["ops"].values() if op["ok"] is True)
-                bloque["multi"] = correctas > 1 if bloque["ops"] else False
+            if "f0" in bloque["ops"]:
+                break
+            correctas = sum(1 for op in bloque["ops"].values() if op.get("ok") is True)
+            bloque["multi"] = correctas > 1
 
-        with open("datos.json", "w", encoding="utf-8") as f:
-            json.dump(resultado, f, indent=4, ensure_ascii=False)
+        resultado = self.asignar_tipo(resultado)
+        with open("datos.json", "w", encoding="utf-8") as file:
+            json.dump(resultado, file, indent=4, ensure_ascii=False)
         return resultado
 
     # ══════════════════════════════════════════════════════════════════════
@@ -448,9 +449,9 @@ class FileReader:
         # ── Iterar emitiendo body + headers en orden correcto ─────────
         for i, child in enumerate(children):
             if child.tag == W_P:
-                yield Paragraph(child, document), "parrafo"  # type: ignore[arg-type]
+                yield Paragraph(child, document), "parrafo"
             elif child.tag == W_TBL:
-                table = Table(child, document)               # type: ignore[arg-type]
+                table = Table(child, document)
                 yield table, "parrafo"
                 for row in table.rows:
                     for cell in row.cells:
@@ -495,3 +496,26 @@ class FileReader:
             "lista_id": lista_id,
             "origen":   origen,
         }
+
+    def asignar_tipo(self, datos):
+        if "tipo" in datos is not None:
+            return datos
+        for pregunta in datos.values():
+            ops = pregunta.get("ops", {})
+            num_ops = len(ops)
+
+            if "f0" in ops:
+                for fila in ops.values():
+                    num_columnas = len(fila)
+                    if num_columnas > 2:
+                        pregunta["tipo"] = "Ensayo"
+                        break
+                pregunta["tipo"] = "Emparejamiento"
+            elif num_ops == 2:
+                pregunta["tipo"] = "V/F"
+            elif num_ops >= 4:
+                pregunta["tipo"] = "multi"
+            else:
+                pregunta["tipo"] = "Ensayo"
+
+        return datos
