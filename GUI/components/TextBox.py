@@ -10,29 +10,38 @@ class JsonFormater(QTextBrowser):
         html_content = ""
 
         for num_pregunta, bloque in data.items():
-            html_content += f"<p><b>Pregunta {num_pregunta}</b>: {html.escape(str(bloque['preg']))}</p>"
+            html_content += f"<p><b>Pregunta {num_pregunta}</b>: {html.escape(str(bloque.get("preg", "")))}</p>"
 
             for letra, opcion in bloque["ops"].items():
-                if "f0" in bloque["ops"]: #TODO cambiar a verificacion por tipo de pregunta
+                if bloque["tipo"] == "match":
                     html_content += '<table border="1">'
 
-                    for fila_id, fila in bloque["ops"].items():
+                    for fila in bloque["ops"].values():
                         html_content += '<tr>'
-
-                        for columna_id, columna in fila.items():
-                            html_content += f'<td>{html.escape(str(columna["txt"]))}</td>'
+                        for columna in fila.values():
+                            if isinstance(columna, dict):
+                                html_content += f'<td>{html.escape(str(columna["txt"]))}</td>'
+                            elif isinstance(columna, str):
+                                html_content += f'<td>{html.escape(str(columna))}</td>'
 
                         html_content += '</tr>'
 
                     html_content += '</table>'
                     break
+                elif bloque["tipo"] == "Ensayo":
+                    html_content += (
+                        f'<p style="margin-left:20px;">'
+                        f'<b>{letra})</b> '
+                        f'<span style="color:fuchsia">{html.escape(str(opcion.get("txt", "")))}</span><br>'
+                        f'</p>'
+                    )  
                 else:
                     color = "green" if opcion["ok"] is True else "red" if opcion["ok"] is False else "FloralWhite"
                     html_content += (
                         f'<p style="margin-left:20px;">'
                         f'<b>{letra})</b> '
-                        f'<span style="color:{color}">{html.escape(str(opcion["txt"]))}</span><br>'
-                        f'<span style="color:fuchsia">{html.escape(str(opcion["retro"]))}</span>'
+                        f'<span style="color:{color}">{html.escape(str(opcion.get("txt", "")))}</span><br>'
+                        f'<span style="color:fuchsia">{html.escape(str(opcion.get("retro", "")))}</span>'
                         f'</p>'
                     )
 

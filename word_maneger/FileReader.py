@@ -204,7 +204,7 @@ class FileReader:
 
             # ── _RawPara (text-box de header) ──────────────────────────
             elif isinstance(elem, _RawPara):
-                texto = elem.text.strip()
+                texto = elem.text
                 if not texto:
                     continue
                 numPr = elem._element.findall(f".//{W_NUMPR}")
@@ -213,13 +213,23 @@ class FileReader:
 
             # ── Paragraph normal ───────────────────────────────────────
             else:
-                texto = (elem.text or "").strip()
+                texto = (elem.text or "")
+                texto = texto.replace("\t", "__________")
+                    
                 if not texto:
                     continue
                 numPr = elem._element.xpath("./w:pPr/w:numPr")
-                self.setData(numPr, data, idx, texto, origen or "parrafo")
+                # Extraer estilo del párrafo para detectar preguntas de ensayo
+                ppr = elem._element.find(f"{{{W}}}pPr")
+                estilo = ""
+                if ppr is not None:
+                    ps = ppr.find(f"{{{W}}}pStyle")
+                    if ps is not None:
+                        estilo = ps.get(f"{{{W}}}val", "")
+                self.setData(numPr, data, idx, texto, origen or "parrafo", estilo)
                 idx += 1
-
+        with open("datos_crudos.json", "w", encoding="utf-8") as file:
+            json.dump(data, file, indent=4, ensure_ascii=False)
         return data
 
     # ══════════════════════════════════════════════════════════════════════
@@ -237,13 +247,62 @@ class FileReader:
         pregunta_actual: dict | None = None
         pregunta_lista:  int  | None = None
         opcion_actual:   str  | None = None   # letra de la opción esperando retro
+        en_modo_ensayo:  bool        = False  # True sólo cuando el marcador aP-Respuesta fue visto
 
         for _, item in data.items():
-            texto    = item["texto"]
+            texto    = item["texto"]    
             nivel    = item["nivel"]
             lista_id = item.get("lista_id")
             origen   = item.get("origen", "parrafo")
             matriz   = item.get("matriz")
+
+            estilo = item.get("estilo", "")
+
+            # ── Pregunta de Ensayo: estilo aPREGUNTA ───────────────────
+            # Los documentos de ensayo usan el estilo "aPREGUNTA" en lugar
+            # de listas numeradas (nivel=0) para marcar el enunciado.
+            if estilo == "aPREGUNTA":
+                num_pregunta += 1
+                resultado[num_pregunta] = {
+                    "preg":  texto,
+                    "val":   None,
+                    "multi": False,
+                    "tipo":  None,
+                    "ops":   {},
+                }
+                pregunta_actual = resultado[num_pregunta]
+                pregunta_lista  = lista_id
+                opcion_actual   = None
+                en_modo_ensayo  = False
+                continue
+
+            # ── Marcador "Respuesta:" (aP-Respuesta-Titulo) ────────────
+            # Activa la captura de retroalimentación para preguntas de ensayo.
+            # El prefijo "aP-Respuesta" cubre variantes multiidioma del estilo.
+            if estilo.startswith("aP-Respuesta") and pregunta_actual is not None:
+                opcion_actual  = "a"
+                en_modo_ensayo = True
+                if "a" not in pregunta_actual["ops"]:
+                    pregunta_actual["ops"]["a"] = {"txt": ""}
+                continue
+
+            # ── Párrafos de retroalimentación de ensayo ─────────────────
+            # Estilos aP-Razon, aP-Razon-Bolitas, Listas-2N, etc.
+            # Se acumulan en ops["a"]["txt"] SÓLO si el marcador aP-Respuesta
+            # fue visto en esta pregunta (en_modo_ensayo=True). Esto evita
+            # que preguntas de opción múltiple se absorban erróneamente.
+            if (en_modo_ensayo
+                    and opcion_actual == "a"
+                    and pregunta_actual is not None
+                    and "a" in pregunta_actual["ops"]
+                    and list(pregunta_actual["ops"].keys()) == ["a"]
+                    and pregunta_actual["ops"]["a"].get("ok") is None
+                    and not any(k.startswith("f") for k in pregunta_actual["ops"])
+                    and estilo not in ("aPREGUNTA", "ListParagraph")):
+                op = pregunta_actual["ops"]["a"]
+                separador = "\n" if op["txt"] else ""
+                op["txt"] = op["txt"] + separador + texto
+                continue
 
             # ── Tabla → filas como opciones ────────────────────────────
             if matriz is not None:
@@ -279,6 +338,25 @@ class FileReader:
 
             # ── Nueva pregunta ─────────────────────────────────────────
             if nivel == 0:
+                # Si la pregunta actual es de ensayo, los párrafos con
+                # nivel=0 pero estilo de lista (Listas-2N, ListParagraph...)
+                # son retroalimentación, no nuevas preguntas.
+                ops_actuales = pregunta_actual["ops"] if pregunta_actual else {}
+                es_retro_ensayo = (
+                    en_modo_ensayo
+                    and pregunta_actual is not None
+                    and opcion_actual == "a"
+                    and list(ops_actuales.keys()) == ["a"]
+                    and ops_actuales["a"].get("ok") is None
+                    and not any(k.startswith("f") for k in ops_actuales)
+                    and estilo not in ("aPREGUNTA", "ListParagraph")
+                )
+                if es_retro_ensayo:
+                    op = pregunta_actual["ops"]["a"] # type: ignore[attr-defined]
+                    separador = "\n" if op["txt"] else ""
+                    op["txt"] = op["txt"] + separador + texto
+                    continue
+
                 num_pregunta += 1
                 resultado[num_pregunta] = {
                     "preg":  texto,
@@ -290,6 +368,7 @@ class FileReader:
                 pregunta_actual = resultado[num_pregunta]
                 pregunta_lista  = lista_id
                 opcion_actual   = None
+                en_modo_ensayo  = False
                 continue
 
             # ── Opción ────────────────────────────────────────────────
@@ -338,14 +417,15 @@ class FileReader:
                         op["retro"] = texto
                     opcion_actual = None
 
+        resultado = self.asignar_tipo(resultado)
+        
         # ── Inferir multi-respuesta ────────────────────────────────────
         for bloque in resultado.values():
-            if "f0" in bloque["ops"]:
-                break
+            if bloque["tipo"] != "multi":
+                continue
             correctas = sum(1 for op in bloque["ops"].values() if op.get("ok") is True)
             bloque["multi"] = correctas > 1
 
-        resultado = self.asignar_tipo(resultado)
         with open("datos.json", "w", encoding="utf-8") as file:
             json.dump(resultado, file, indent=4, ensure_ascii=False)
         return resultado
@@ -466,7 +546,7 @@ class FileReader:
     # ══════════════════════════════════════════════════════════════════════
     # setData helpers
     # ══════════════════════════════════════════════════════════════════════
-    def setData(self, numPr, data, idx, texto, origen):
+    def setData(self, numPr, data, idx, texto, origen, estilo=""):
         """Para Paragraph / python-docx (usa .xpath)."""
         nivel = lista_id = None
         if numPr:
@@ -479,6 +559,7 @@ class FileReader:
             "nivel":    nivel,
             "lista_id": lista_id,
             "origen":   origen,
+            "estilo":   estilo,
         }
 
     def _setData_raw(self, numPr_nodes, data, idx, texto, origen):
@@ -509,12 +590,17 @@ class FileReader:
                     num_columnas = len(fila)
                     if num_columnas > 2:
                         pregunta["tipo"] = "Ensayo"
-                        break
-                pregunta["tipo"] = "Emparejamiento"
+                pregunta["tipo"] = "match"
             elif num_ops == 2:
                 pregunta["tipo"] = "V/F"
             elif num_ops >= 4:
                 pregunta["tipo"] = "multi"
+                if (
+                    (any(p in pregunta["preg"].upper() for p in self._PREFIJOS_OK)
+                     or any(p in pregunta["preg"].upper() for p in self._PREFIJOS_NOK))
+                ):
+                    pregunta["tipo"] = "match"
+
             else:
                 pregunta["tipo"] = "Ensayo"
 
