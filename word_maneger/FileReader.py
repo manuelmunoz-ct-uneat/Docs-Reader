@@ -676,11 +676,9 @@ class FileReader:
             num_ops = len(ops)
 
             if 'a' in ops and list(ops.keys()) == ['a']:
-                # Solo la clave 'a' → respuesta de ensayo
                 pregunta['tipo'] = 'Ensayo'
 
             elif 'f0' in ops:
-                # Filas de tabla → emparejamiento o V/F tabular
                 pregunta['tipo'] = 'match'
 
             elif num_ops == 2:
@@ -690,6 +688,6 @@ class FileReader:
                 pregunta['tipo'] = 'multi'
 
             else:
-                pregunta['tipo'] = 'Ensayo'
+                pregunta['tipo'] = 'ensayo'
 
         return datos
