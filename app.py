@@ -1,6 +1,5 @@
-from PySide6.QtCore import Qt
 from GUI.widget import ControlWidget, WordVisualizer
-from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QWidget
 
 # Necesita una (y solo una) instancia de QApplication por aplicación.
 # Pase sys.argv para permitir argumentos de línea de comandos para su aplicación.
@@ -13,17 +12,19 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle("Lector de documentos Word")
         
-        controlPanel1 = ControlWidget.ControlWidget("Controles")
-        controlPanel2 = ControlWidget.ControlWidget("Visualizador")
+        # controlPanel1 = ControlWidget.ControlWidget("Controles")
+        # controlPanel2 = ControlWidget.ControlWidget("Visualizador")
+        wordVisualizer = WordVisualizer.WordUploadWidget()
 
-        vLayOut = QVBoxLayout()
+        vLayOut = QHBoxLayout()
         vWidgetContainer = QWidget()
-        vLayOut.addWidget(WordVisualizer.WordUploadWidget())
+        vLayOut.addWidget(wordVisualizer)
+        # vLayOut.addWidget(controlPanel1)
         
         vWidgetContainer.setLayout(vLayOut)
         self.setCentralWidget(vWidgetContainer)
-        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, controlPanel1)
-        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, controlPanel2)
+        # self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, controlPanel1)
+        # self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, controlPanel2)
 
 window = MainWindow()
 window.showMaximized()
