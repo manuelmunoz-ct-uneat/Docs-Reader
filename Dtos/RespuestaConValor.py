@@ -1,8 +1,8 @@
 from dataclasses import dataclass
-from RespuestaDto import Respuesta
+from RespuestaDto import RespuestaDto
 
 @dataclass(kw_only=True)
-class RespuestaConValor(Respuesta):
+class RespuestaConValorDto(RespuestaDto):
     valor: str
 
 

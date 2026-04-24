@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
 @dataclass
-class Respuesta(dict):
+class RespuestaDto(dict):
     pregunta: str
     retroalimentacion: str
