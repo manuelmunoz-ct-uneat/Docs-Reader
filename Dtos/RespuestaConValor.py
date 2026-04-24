@@ -5,5 +5,6 @@ from RespuestaDto import RespuestaDto
 class RespuestaConValorDto(RespuestaDto):
     valor: str
 
-
-
+    def __post_init__(self):
+        super().__post_init__()
+        self["valor"] = self.valor
