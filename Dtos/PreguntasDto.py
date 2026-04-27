@@ -7,4 +7,5 @@ class Pregunta:
     tipo: str
     nota_defecto: str
     penalizacion: str
+    img: str | None
 
