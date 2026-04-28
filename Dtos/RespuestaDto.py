@@ -1,11 +1,21 @@
 from dataclasses import dataclass
+from typing import Dict
 
 @dataclass
-class RespuestaDto(dict):
-    respuesta: str
-    retroalimentacion: str
+class OpcionDeRespuestaDto:
+    txt: str
+    retro: str
     img: str | None
 
-    def __post_init__(self):
-        self["respuesta"] = self.respuesta
-        self["retroalimentacion"] = self.retroalimentacion
+
+@dataclass
+class RespuestaDto:
+    respuestas: Dict[str, OpcionDeRespuestaDto]
+
+    @staticmethod
+    def from_dict(data: dict) -> "RespuestaDto":
+        respuestas = {
+            key: OpcionDeRespuestaDto(**value)
+            for key, value in data.items()
+        }
+        return RespuestaDto(respuestas=respuestas)
