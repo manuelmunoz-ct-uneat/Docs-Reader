@@ -10,7 +10,12 @@ class JsonFormater(QTextBrowser):
         html_content = ''
 
         for num_pregunta, bloque in data.items():
-            html_content += f'<p><b>Pregunta {num_pregunta}</b>: {html.escape(str(bloque.get('preg', '')))}</p>'
+            html_content += (
+                f'<p><b>{num_pregunta}</b>: {html.escape(bloque.get('preg', ''))}<br>'
+                f'<b>Tipo</b>: {html.escape(bloque.get('tipo'))}</p>'
+                )
+            if 'img' in bloque:
+                html_content += f'<br><img src="data:image/{bloque['img'].get('fmt')};base64, {bloque['img'].get('b64')}"/>'
 
             for letra, opcion in bloque['ops'].items():
                 if bloque['tipo'] == 'match':
@@ -28,7 +33,7 @@ class JsonFormater(QTextBrowser):
                         html_content += '</tr>'
                     html_content += '</table>'
                     break
-                elif bloque['tipo'] == 'Ensayo':
+                elif bloque['tipo'] == 'ensayo':
                     for tipo in opcion.keys():
                         if tipo == 'txt':
                             html_content += (
@@ -58,17 +63,16 @@ class JsonFormater(QTextBrowser):
                                 html_content += '</tr>'
 
                             html_content += '</table>'
-                        elif tipo == 'imagenes':
-                            html_content += f'<img src="data:image/{opcion['imagenes'].get('fmt')};base64, {opcion['imagenes'].get('b64')}"/>'
+                        elif tipo == 'img':
+                            html_content += f'<img src="data:image/{opcion['img'].get('fmt')};base64, {opcion['img'].get('b64')}"/>'
                 else:
-                    color = 'green' if opcion['ok'] is True else 'red' if opcion['ok'] is False else 'FloralWhite'
-                    html_content += (
-                        f'<p style="margin-left:20px;">'
-                        f'<b>{letra})</b> '
-                        f'<span style="color:{color}">{html.escape(str(opcion.get('txt')))}</span><br>'
-                        f'<span style="color:fuchsia">{html.escape(str(opcion.get('retro')))}</span>'
-                        f'</p>'
-                    )
+                    color = 'green' if opcion.get("ok") is True else 'red' if opcion.get("ok") is False else 'FloralWhite'
+                    html_content += f'<p style="margin-left:20px;">'
+                    html_content += f'<b>{letra})</b> '
+                    html_content += f'<span style="color:{color}">{html.escape(str(opcion.get('txt')))}</span><br>'
+                    if 'img' in opcion:
+                        html_content += f'<img src="data:image/{opcion['img'].get('fmt')};base64, {opcion['img'].get('b64')}"/><br>'
+                    html_content += f'<span style="color:fuchsia">{html.escape(str(opcion.get('retro')))}</span></p>'
 
         self.setHtml(html_content)
         font = self.font()
