@@ -191,14 +191,14 @@ class FileReader:
             if isinstance(elem, Table):
                 matriz: dict = {}
                 for i, row in enumerate(elem.rows):
-                    matriz[i] = {}
+                    matriz[f'f{i}'] = {}
                     for j, cell in enumerate(row.cells):
                         img = self.detectar_blip(cell)   # lista o None
                         if img:
                             # Celda con imagen(es): guardar texto + lista de imgs
-                            matriz[i][j] = {"txt": cell.text.strip(), "img": img}
+                            matriz[f'f{i}'][f'c{j}'] = {"txt": cell.text.strip(), "img": img}
                         else:
-                            matriz[i][j] = cell.text.strip()
+                            matriz[f'f{i}'][f'c{j}'] = cell.text.strip()
 
                 if not any(t for fila in matriz.values() for t in fila.values()):
                     continue  # tabla vacía
@@ -382,9 +382,7 @@ class FileReader:
                         if isinstance(columna, dict):
                             pregunta_actual['ops'][f'f{i}'][f'c{j}'] = columna
                         else:
-                            pregunta_actual['ops'][f'f{i}'][f'c{j}'] = {
-                                'txt': columna
-                            }
+                            pregunta_actual['ops'][f'f{i}'].update({f'c{j}': columna})
                 continue
 
             # ── FIX A: opción en header con nivel=0 ó prefijo 'a) b)'──

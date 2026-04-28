@@ -25,10 +25,7 @@ class JsonFormater(QTextBrowser):
                         html_content += '<tr>'
 
                         for columna in fila.values():
-                            if isinstance(columna, dict):
-                                html_content += f'<td>{html.escape(str(columna['txt']))}</td>'
-                            elif isinstance(columna, str):
-                                html_content += f'<td>{html.escape(str(columna))}</td>'
+                            html_content += f'<td>{html.escape(str(columna))}</td>'
 
                         html_content += '</tr>'
                     html_content += '</table>'
