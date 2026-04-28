@@ -193,11 +193,12 @@ class FileReader:
                 for i, row in enumerate(elem.rows):
                     matriz[i] = {}
                     for j, cell in enumerate(row.cells):
-                        matriz[i].update({j: cell.text.strip()})
-                        img = self.detectar_blip(cell)
+                        img = self.detectar_blip(cell)   # lista o None
                         if img:
-                            matriz[i].update({j: {"txt": cell.text.strip(), "img": img}})
-
+                            # Celda con imagen(es): guardar texto + lista de imgs
+                            matriz[i][j] = {"txt": cell.text.strip(), "img": img}
+                        else:
+                            matriz[i][j] = cell.text.strip()
 
                 if not any(t for fila in matriz.values() for t in fila.values()):
                     continue  # tabla vacía
@@ -246,7 +247,7 @@ class FileReader:
                                     'lista_id': None,
                                     'origen':   origen or 'parrafo',
                                     'estilo':   estilo,
-                                    'imagen':   img_b64
+                                    'img':   img_b64
                                 }
                                 idx += 1
                     continue   # párrafo de imagen procesado, no caer en el bloque de texto
@@ -314,16 +315,24 @@ class FileReader:
                     pregunta_actual['ops']['a'] = {'txt': ''}
                 continue
 
-            # ── Imagen en ensayo → acumular en ops['a']['imagenes'] ─────
-            imagen = item.get('imagen')
+            # ── Imagen: tres destinos posibles ───────────────────────────
+            # A) Modo ensayo con ops['a'] activo → retroalimentación del ensayo
+            # B) opcion_actual activo            → imagen de una opción concreta
+            # C) opcion_actual es None           → imagen del enunciado
+            imagen = item.get('img')
             if imagen is not None and pregunta_actual is not None:
                 if (en_modo_ensayo
                         and 'a' in pregunta_actual['ops']
                         and list(pregunta_actual['ops'].keys()) == ['a']):
-                    op = pregunta_actual['ops']['a']
-                    if 'imagenes' not in op:
-                        op['imagenes'] = imagen
-                    continue
+                    # A) ensayo: acumular en ops['a']['img']
+                    pregunta_actual["ops"]["a"].update({'img': imagen})
+                elif opcion_actual is not None and opcion_actual in pregunta_actual['ops']:
+                    # B) imagen asociada a la opción activa (ej. después de la letra)
+                    pregunta_actual["ops"][opcion_actual].update({"img": imagen})
+                else:
+                    # C) imagen tras el enunciado → se adjunta a la pregunta
+                    pregunta_actual.update({"img": imagen})
+                continue
 
             # ── Párrafos de retroalimentación de ensayo ─────────────────
             # Estilos aP-Razon, aP-Razon-Bolitas, Listas-2N, etc.
@@ -357,8 +366,7 @@ class FileReader:
                         and 'a' in pregunta_actual['ops']
                         and list(pregunta_actual['ops'].keys()) == ['a']):
                     op = pregunta_actual['ops']['a']
-                    if 'tablas' not in op:
-                        op['tablas'] = matriz
+                    op.update({"tablas": matriz})
                     continue
 
                 # Si ya hay filas (fN) de una tabla anterior de esta misma
@@ -368,9 +376,15 @@ class FileReader:
                 for i, fila in enumerate(matriz.values(), start=start_row):
                     pregunta_actual['ops'][f'f{i}'] = {}
                     for j, columna in enumerate(fila.values()):
-                        pregunta_actual['ops'][f'f{i}'][f'c{j}'] = {
-                            'txt': columna
-                        }
+                        # Si la celda ya tiene estructura dict (ej. celda con
+                        # imagen: {"txt": "...", "imgs": [...]}), usarla tal cual.
+                        # Si es un string plano, envolverlo en {'txt': ...}.
+                        if isinstance(columna, dict):
+                            pregunta_actual['ops'][f'f{i}'][f'c{j}'] = columna
+                        else:
+                            pregunta_actual['ops'][f'f{i}'][f'c{j}'] = {
+                                'txt': columna
+                            }
                 continue
 
             # ── FIX A: opción en header con nivel=0 ó prefijo 'a) b)'──
@@ -566,8 +580,11 @@ class FileReader:
                     # Candidato B: sectPr declaratorio (i)
                     txt_after_prev = _first_nonempty_text(last_sectpr_idx)
                     txt_after_decl = _first_nonempty_text(i)
-                    fb_prev = self._classify_feedback(txt_after_prev)
-                    fb_decl = self._classify_feedback(txt_after_decl)
+                    # _split_feedback detecta feedback en cualquier posición del
+                    # párrafo (no solo la primera palabra), lo que cubre el caso
+                    # de feedback inline: "Opción texto. INCORRECTA. Explicación."
+                    fb_prev = self._split_feedback(txt_after_prev)[0]
+                    fb_decl = self._split_feedback(txt_after_decl)[0]
 
                     if fb_prev is not None:
                         # El feedback del header está justo después del sectPr anterior
@@ -639,7 +656,6 @@ class FileReader:
         Dado un rId de relación, extrae la imagen del ZIP y la devuelve
         como {'b64': str_base64, 'fmt': 'png'|'jpg'|...} o None si falla.
         '''
-        import base64 as _b64
         try:
             with zipfile.ZipFile(self.doc_path) as z:  # type: ignore[attr-defined]
                 rels_raw = z.read('word/_rels/document.xml.rels').decode('utf-8')
@@ -658,15 +674,19 @@ class FileReader:
         except Exception:
             return None
         
-    def detectar_blip(self, cell: _Cell):
-        blips  = cell._element.findall(f'.//{{{A_NS}}}blip')
-        if blips:
-            for blip in blips:
-                rid = blip.get(R_EMB)
-                if rid:
-                    img_b64 = self._extract_image_b64(rid)
-                    if img_b64:
-                        return img_b64
+    def detectar_blip(self, cell: _Cell) -> dict | None:
+        """
+        Extrae todas las imágenes embebidas en una celda de tabla.
+        Devuelve  [{'b64': ..., 'fmt': ...}, ...]  o  None si no hay imágenes.
+        """
+        imagenes = {}
+        for blip in cell._element.findall(f'.//{{{A_NS}}}blip'):
+            rid = blip.get(R_EMB)
+            if rid:
+                img = self._extract_image_b64(rid)
+                if img:
+                    imagenes.update(img)
+        return imagenes if imagenes else None
 
     def asignar_tipo(self, datos):
         for pregunta in datos.values():
@@ -676,9 +696,11 @@ class FileReader:
             num_ops = len(ops)
 
             if 'a' in ops and list(ops.keys()) == ['a']:
-                pregunta['tipo'] = 'Ensayo'
+                # Solo la clave 'a' → respuesta de ensayo
+                pregunta['tipo'] = 'ensayo'
 
             elif 'f0' in ops:
+                # Filas de tabla → emparejamiento o V/F tabular
                 pregunta['tipo'] = 'match'
 
             elif num_ops == 2:
