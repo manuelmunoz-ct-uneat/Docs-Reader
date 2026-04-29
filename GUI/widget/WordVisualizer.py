@@ -3,6 +3,7 @@ from pathlib import Path
 from PySide6.QtWidgets import (QApplication, QWidget, QPushButton, QTextEdit, QComboBox, QFileDialog, QHBoxLayout, QVBoxLayout, QTextBrowser)
 from word_maneger.FileReader import FileReader
 from GUI.components.TextBox import JsonFormater
+from Dtos_Mapper.Mapper import Mapper
 
 class WordUploadWidget(QWidget):
     FILE_FILTER = 'Word file (*.doc *.docx)'
@@ -36,6 +37,7 @@ class WordUploadWidget(QWidget):
                 fileLocation = self.getFileName()
                 document = FileReader(fileLocation)
                 paragraph = document.parse_to_json()
+                Mapper.tipoPregunta(dataJson=paragraph)
                 self.textbox.setJson(paragraph)
             else:
                 print('Got Nothing')
