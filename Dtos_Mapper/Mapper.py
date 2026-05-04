@@ -1,4 +1,5 @@
 from Dtos.OpcionMultipleDto import OpcionMultipleDto
+from Dtos.PreguntaEmparejamientoDto import PreguntaEmparejamientoDto
 from Dtos.PreguntasDto import Pregunta
 from Dtos.RespuestaDto import RespuestaDto
 import re
@@ -9,7 +10,7 @@ class Mapper():
 
     @staticmethod
     def procesarCurso(course_route) -> dict[str, str]:
-        courseCodeRegex = r'^[A-Z]{2,3}\d{3,4}$'
+        courseCodeRegex = r'^[A-Z]{2,4}\d{3,4}$'
         courseActivityType = {'co', 'rec01', 'rec02', 'test', 'tarea'}
         courseActivityLang = {'esp', 'ing', 'fra', 'por'}
         
@@ -36,21 +37,23 @@ class Mapper():
 
     @classmethod
     def tipoPregunta(cls, course_data, dataJson):
-        datos = []
+        
+        preguntasDeActividad = []
         datosActividad = cls.procesarCurso(course_data)
-        datos.append(datosActividad)
+        preguntasDeActividad.append(datosActividad)
+        
         for id_pregunta, data in dataJson.items():
             if data.get("tipo") == "multi":
-                multi_pregunta = OpcionMultipleDto.from_dict(data, id_pregunta, datosActividad)
-                datos.append(multi_pregunta)
+                pregunta = OpcionMultipleDto.from_dict(data, id_pregunta, datosActividad)
+                preguntasDeActividad.append(pregunta)
             elif data.get("tipo") == "match":
-
-                print("Pregunta match")
+                pregunta = PreguntaEmparejamientoDto.from_dict(data, id_pregunta, datosActividad)
+                preguntasDeActividad.append(pregunta)
             elif data.get("tipo") == "ensayo":
                 print("Pregunta ensayo")
             elif data.get("tipo") == "V/F":
                 print("Pregunta V/F")
         
-        return datos
+        return preguntasDeActividad
 
 
