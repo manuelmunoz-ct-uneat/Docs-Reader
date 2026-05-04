@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from enum import Enum
 
 @dataclass
 class Pregunta:
@@ -8,20 +7,20 @@ class Pregunta:
     tipo: str
     img: dict[str, str] | None
 
-    def __init__(self, data, id_pregunta, datosActividad):
-        id_pregunta = str(id_pregunta).zfill(3)
+    def __init__(self, jsonData, numeroPregunta, datosActividad):
+        numeroPregunta = str(numeroPregunta).zfill(3)
         courseId = datosActividad.get("courseId")
         lang = datosActividad.get("courseLang")
         tipoDeActividad = self.setTipoActividad(datosActividad.get("courseActv"))
 
-        self.nombre_pregunta = f'{courseId}-{lang}-X1-{tipoDeActividad}-{id_pregunta}'
+        self.nombre_pregunta = f'{courseId}-{lang}-X1-{tipoDeActividad}-{numeroPregunta}'
 
-        self.preg = data.get('preg')
-        self.tipo = data.get('tipo')
+        self.preg = jsonData.get('preg')
+        self.tipo = jsonData.get('tipo')
         self.img = {
-            'b64': data['img'].get('b64'),
-            'fmt': data['img'].get('fmt')
-            } if 'img' in data else None
+            'b64': jsonData['img'].get('b64'),
+            'fmt': jsonData['img'].get('fmt')
+            } if 'img' in jsonData else None
     
     @staticmethod
     def from_dict(data, id_pregunta, datosActividad):
