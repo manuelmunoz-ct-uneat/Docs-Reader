@@ -1,7 +1,6 @@
-from Dtos.OpcionMultipleDto import OpcionMultipleDto
+from Dtos.PreguntaOpcionMultipleDto import PreguntaOpcionMultipleDto
 from Dtos.PreguntaEmparejamientoDto import PreguntaEmparejamientoDto
-from Dtos.PreguntasDto import Pregunta
-from Dtos.RespuestaDto import RespuestaDto
+from Dtos.PreguntaVerdaderoFalsoDto import PreguntaVerdaderoFalsoDto
 import re
 
 
@@ -36,23 +35,25 @@ class Mapper():
 
 
     @classmethod
-    def tipoPregunta(cls, course_data, dataJson):
+    def tipoPregunta(cls, courseData, dataJson):
         
         preguntasDeActividad = []
-        datosActividad = cls.procesarCurso(course_data)
+        datosActividad = cls.procesarCurso(courseData)
         preguntasDeActividad.append(datosActividad)
         
-        for id_pregunta, data in dataJson.items():
+        for numPregunta, data in dataJson.items():
             if data.get("tipo") == "multi":
-                pregunta = OpcionMultipleDto.from_dict(data, id_pregunta, datosActividad)
-                preguntasDeActividad.append(pregunta)
+                preguntaMultiple = PreguntaOpcionMultipleDto.from_dict(data, numPregunta, datosActividad)
+                preguntasDeActividad.append(preguntaMultiple)
             elif data.get("tipo") == "match":
-                pregunta = PreguntaEmparejamientoDto.from_dict(data, id_pregunta, datosActividad)
-                preguntasDeActividad.append(pregunta)
+                preguntaEmparejamiento = PreguntaEmparejamientoDto.from_dict(data, numPregunta, datosActividad)
+                preguntasDeActividad.append(preguntaEmparejamiento)
+            elif data.get("tipo") == "V/F":
+                preguntaVerdaderoFalso = PreguntaVerdaderoFalsoDto.from_dict(data, numPregunta, datosActividad)
+                preguntasDeActividad.append(preguntaVerdaderoFalso)
+                print("Pregunta V/F")
             elif data.get("tipo") == "ensayo":
                 print("Pregunta ensayo")
-            elif data.get("tipo") == "V/F":
-                print("Pregunta V/F")
         
         return preguntasDeActividad
 
