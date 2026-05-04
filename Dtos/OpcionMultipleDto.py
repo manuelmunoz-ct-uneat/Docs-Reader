@@ -6,13 +6,13 @@ from Dtos.RespuestaDto import RespuestaDto
 class OpcionMultipleDto(Pregunta):
     respuestas: RespuestaDto
 
-    def __init__(self, data, id_pregunta):
-        super().__init__(data, id_pregunta)
+    def __init__(self, data, id_pregunta, datosActividad):
+        super().__init__(data, id_pregunta, datosActividad)
         self.respuestas = RespuestaDto.from_dict(data.get('ops'))
 
     @classmethod
-    def from_dict(cls, data, id_pregunta):
-        return OpcionMultipleDto(data, id_pregunta)
+    def from_dict(cls, data, id_pregunta, datosActividad):
+        return OpcionMultipleDto(data, id_pregunta, datosActividad)
 
 
 

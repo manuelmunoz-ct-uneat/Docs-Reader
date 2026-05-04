@@ -37,13 +37,14 @@ class Mapper():
     @classmethod
     def tipoPregunta(cls, course_data, dataJson):
         datos = []
-        course = cls.procesarCurso(course_data)
-        datos.append(course)
+        datosActividad = cls.procesarCurso(course_data)
+        datos.append(datosActividad)
         for id_pregunta, data in dataJson.items():
             if data.get("tipo") == "multi":
-                multi_pregunta = OpcionMultipleDto.from_dict(data, id_pregunta)
+                multi_pregunta = OpcionMultipleDto.from_dict(data, id_pregunta, datosActividad)
                 datos.append(multi_pregunta)
             elif data.get("tipo") == "match":
+
                 print("Pregunta match")
             elif data.get("tipo") == "ensayo":
                 print("Pregunta ensayo")
