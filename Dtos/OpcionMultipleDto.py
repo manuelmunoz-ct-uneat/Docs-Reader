@@ -12,7 +12,7 @@ class OpcionMultipleDto(Pregunta):
 
     @classmethod
     def from_dict(cls, data, id_pregunta, datosActividad):
-        return OpcionMultipleDto(data, id_pregunta, datosActividad)
+        return cls(data, id_pregunta, datosActividad)
 
 
 
