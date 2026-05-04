@@ -12,18 +12,18 @@ class OpcionDeRespuestaDto:
 
 @dataclass
 class RespuestaDto:
+    respuestas: Dict[str, OpcionDeRespuestaDto]
 
     def __init__(self, data: dict[str, Any]):
-        respuestas: Dict[str, OpcionDeRespuestaDto] = {}
-        for key in data.keys():
-            respuestas.update({
-                key: OpcionDeRespuestaDto(
-                    data.get("txt", ""),
-                    data.get("retro", ""),
-                    data.get("ok", ""),
-                    data.get("img")
-                    )
-        })
+        self.respuestas = {}
+
+        for key, value in data.items():
+            self.respuestas[key] = OpcionDeRespuestaDto(
+                value.get("txt", ""),
+                value.get("retro", ""),
+                value.get("ok", False),
+                value.get("img", None)
+            )
 
     @classmethod
     def from_dict(cls, data: dict):
