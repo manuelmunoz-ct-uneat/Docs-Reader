@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 @dataclass
-class Pregunta:
+class PreguntaDto:
     nombre_pregunta: str
     preg: str
     tipo: str
@@ -22,9 +22,9 @@ class Pregunta:
             'fmt': jsonData['img'].get('fmt')
             } if 'img' in jsonData else None
     
-    @staticmethod
-    def from_dict(data, id_pregunta, datosActividad):
-        return Pregunta(data, id_pregunta, datosActividad)
+    @classmethod
+    def from_dict(cls, jsonData, id_pregunta, datosActividad):
+        return cls(jsonData, id_pregunta, datosActividad)
     
     @staticmethod
     def setTipoActividad(tipoActividad):

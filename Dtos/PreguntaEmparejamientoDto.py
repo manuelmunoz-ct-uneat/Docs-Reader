@@ -1,9 +1,9 @@
 from dataclasses import dataclass
-from .PreguntasDto import Pregunta
+from .PreguntasDto import PreguntaDto
 from .RespuestaEmparejamientoDto import RespuestaEmparejamientoDto
 
 @dataclass
-class PreguntaEmparejamientoDto(Pregunta):
+class PreguntaEmparejamientoDto(PreguntaDto):
 
     respuestas: RespuestaEmparejamientoDto
 

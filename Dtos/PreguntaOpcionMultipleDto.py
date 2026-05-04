@@ -1,9 +1,9 @@
 from dataclasses import dataclass
-from Dtos.PreguntasDto import Pregunta
-from Dtos.RespuestaDto import RespuestaDto
+from Dtos.PreguntasDto import PreguntaDto
+from Dtos.RespuestasDto import RespuestaDto
 
 @dataclass
-class OpcionMultipleDto(Pregunta):
+class PreguntaOpcionMultipleDto(PreguntaDto):
     respuestas: RespuestaDto
 
     def __init__(self, jsonData, id_pregunta, datosActividad):
