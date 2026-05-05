@@ -4,7 +4,7 @@ from PySide6.QtWidgets import (QApplication, QWidget, QPushButton, QTextEdit, QC
 from word_maneger.FileReader import FileReader
 from GUI.components.TextBox import JsonFormater
 from Dtos_Mapper.Mapper import Mapper
-from Dtos.RespuestasDto import RespuestaDto
+from xml_parser.XmlParser import XmlParser
 
 class WordUploadWidget(QWidget):
     FILE_FILTER = 'Word file (*.doc *.docx)'
@@ -39,10 +39,11 @@ class WordUploadWidget(QWidget):
                 document = FileReader(fileLocation)
                 paragraph = document.parse_to_json()
                 dtoData: list = Mapper.tipoPregunta(fileLocation, paragraph)
-                print(f"{dtoData}\n")
-                for obj in dtoData:
-                     if isinstance(obj, RespuestaDto):
-                        print(f"{obj.respuestas}\n")
+                XmlParser.parse(dtoData)
+                # print(f"{dtoData}\n")
+                # for obj in dtoData:
+                #      if isinstance(obj, RespuestaDto):
+                #         print(f"{obj.respuestas}\n")
                 self.textbox.setJson(paragraph)
             else:
                 print('Got Nothing')
