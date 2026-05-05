@@ -1,11 +1,10 @@
 from Dtos.PreguntaOpcionMultipleDto import PreguntaOpcionMultipleDto
 from Dtos.PreguntaEmparejamientoDto import PreguntaEmparejamientoDto
 from Dtos.PreguntaVerdaderoFalsoDto import PreguntaVerdaderoFalsoDto
+from Dtos.PreguntaEnsayoDto import PreguntaEnsayoDto
 import re
 
-
 class Mapper():
-
 
     @staticmethod
     def procesarCurso(course_route) -> dict[str, str]:
@@ -22,17 +21,13 @@ class Mapper():
         for data in course:
             if re.match(courseCodeRegex, data):
                 courseData.update({'courseId': data})
-
             elif data.lower() in courseActivityType:
                 courseData.update({'courseActv': data})
-
             elif data.lower() in courseActivityLang:
                 courseData.update({'courseLang': data})
 
-
         return courseData
     
-
 
     @classmethod
     def tipoPregunta(cls, courseData, dataJson):
@@ -51,9 +46,9 @@ class Mapper():
             elif data.get("tipo") == "V/F":
                 preguntaVerdaderoFalso = PreguntaVerdaderoFalsoDto.from_dict(data, numPregunta, datosActividad)
                 preguntasDeActividad.append(preguntaVerdaderoFalso)
-                print("Pregunta V/F")
             elif data.get("tipo") == "ensayo":
-                print("Pregunta ensayo")
+                preguntaEnsayo = PreguntaEnsayoDto.from_dict(data, numPregunta, datosActividad)
+                preguntasDeActividad.append(preguntaEnsayo)
         
         return preguntasDeActividad
 
