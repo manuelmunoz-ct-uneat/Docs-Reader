@@ -295,7 +295,6 @@ class FileReader:
                 resultado[num_pregunta] = {
                     'preg':  texto,
                     'val':   None,
-                    'multi': False,
                     'tipo':  None,
                     'ops':   {},
                 }
@@ -428,7 +427,6 @@ class FileReader:
                 resultado[num_pregunta] = {
                     'preg':  texto,
                     'val':   None,
-                    'multi': False,
                     'tipo':  None,
                     'ops':   {},
                 }
@@ -485,13 +483,6 @@ class FileReader:
                     opcion_actual = None
 
         resultado = self.asignar_tipo(resultado)
-        
-        # ── Inferir multi-respuesta ────────────────────────────────────
-        for bloque in resultado.values():
-            if bloque['tipo'] != 'multi':
-                continue
-            correctas = sum(1 for op in bloque['ops'].values() if op.get('ok') is True)
-            bloque['multi'] = correctas > 1
 
         with open('datos.json', 'w', encoding='utf-8') as file:
             json.dump(resultado, file, indent=4, ensure_ascii=False)
