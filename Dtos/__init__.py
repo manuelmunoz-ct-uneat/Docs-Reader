@@ -1,1 +1,4 @@
-# Init file
+from .PreguntaOpcionMultipleDto import PreguntaOpcionMultipleDto
+from .PreguntaEnsayoDto import PreguntaEnsayoDto
+from .PreguntaEmparejamientoDto import PreguntaEmparejamientoDto
+from .PreguntaVerdaderoFalsoDto import PreguntaVerdaderoFalsoDto
