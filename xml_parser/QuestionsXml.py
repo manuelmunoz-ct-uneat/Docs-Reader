@@ -1,5 +1,6 @@
 from Dtos import (PreguntaEnsayoDto, PreguntaEmparejamientoDto,
-                  PreguntaOpcionMultipleDto, PreguntaVerdaderoFalsoDto, OpcionDeRespuestaEnsayoDto)
+                  PreguntaOpcionMultipleDto, PreguntaVerdaderoFalsoDto,
+                  OpcionDeRespuestaEnsayoDto, OpcionDeRespuestaDto)
 import textwrap
 
 class QuestionXml:
@@ -64,7 +65,6 @@ class QuestionXml:
         bloquePregunta += "</question>\n"
         return bloquePregunta
 
-    
     @staticmethod
     def preguntaEnsayo(pregunta: PreguntaEnsayoDto):
         respuestas = [QuestionXml.respuestasEnsayo(bloqueRespuesta) for bloqueRespuesta in pregunta.respuestas.respuestas.values()][0]
@@ -165,22 +165,68 @@ class QuestionXml:
     
     @staticmethod
     def preguntaVerdaderoFalso(pregunta: PreguntaVerdaderoFalsoDto):
-        return
-    
+        bloquePregunta = ""
+        respuestas = [QuestionXml.respuestasVerdaderoFalso(bloquePregunta) for bloquePregunta in pregunta.respuestas.respuestas.values()]
+
+        bloquePregunta += (f"""
+<question type="truefalse">
+    <name>
+        <text>{pregunta.nombre_pregunta}</text>
+    </name>
+    <questiontext format="html">
+        <text>
+            <![CDATA[ <p>{pregunta.preg}</p> ]]>
+        </text>
+    </questiontext>
+    <generalfeedback format="html">
+        <text/>
+    </generalfeedback>
+    <defaultgrade>1.0000000</defaultgrade>
+    <penalty>1.0000000</penalty>
+    <hidden>0</hidden>
+    <idnumber/>
+""").strip()  + "\n"
+        
+        for respuesta in respuestas:
+            bloque = ""
+            bloque += textwrap.dedent(f"""
+    <answer fraction="{QuestionXml.asignarPuntaje("100", respuesta.get("ok"))}" format="moodle_auto_format">
+        <text>{"true" if respuesta.get("ok") else "false"}</text>
+        <feedback format="html">
+            <text>
+                <![CDATA[ <p>{respuesta.get("retro")}</p> ]]>
+            </text>
+        </feedback>
+    </answer>
+    """).strip()
+            bloquePregunta += "\t" + bloque.replace("\n", "\n\t") + "\n"
+
+        bloquePregunta += "</question>\n"
+        return bloquePregunta
+
     @staticmethod
     def calcularPuntaje(cantidadCorrectas: int) -> str:
         return str((1/cantidadCorrectas)*100)
     
     @staticmethod
-    def asignarPuntaje(puntaje: str, esCorrecta: bool) -> str:
+    def asignarPuntaje(puntaje: str, esCorrecta) -> str:
         return puntaje if esCorrecta == True else '0'
     
     @staticmethod
-    def respuestasEnsayo(pregunta: OpcionDeRespuestaEnsayoDto):
+    def respuestasVerdaderoFalso(respuesta: OpcionDeRespuestaDto):
         return {
-            "txt": pregunta.txt,
-            "tabla": pregunta.tabla,
-            "img": pregunta.img or None
+            "txt": respuesta.txt,
+            "retro": respuesta.retro,
+            "ok": respuesta.ok,
+            "img": respuesta.img or None
+        }
+
+    @staticmethod
+    def respuestasEnsayo(respuesta: OpcionDeRespuestaEnsayoDto):
+        return {
+            "txt": respuesta.txt,
+            "tabla": respuesta.tabla,
+            "img": respuesta.img or None
         }
     
 

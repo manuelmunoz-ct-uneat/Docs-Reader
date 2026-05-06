@@ -19,7 +19,8 @@ class XmlParser:
                 preguntaMulti = QuestionXml.preguntaOpcionMultiple(question, cantidadCorrectas)
                 xmlDocument += preguntaMulti
             elif isinstance(question, PreguntaVerdaderoFalsoDto):
-                print("mayhaps")
+                preguntaVerdaderoFalso = QuestionXml.preguntaVerdaderoFalso(question)
+                xmlDocument += preguntaVerdaderoFalso
             else:
                 print("crear nueva seccion de preguntas") # Se cambia la categoria de la seccion, ej CO -> E0, Rec01 -> R1 ...
                 
