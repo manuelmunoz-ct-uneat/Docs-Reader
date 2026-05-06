@@ -1,5 +1,5 @@
 from Dtos import (PreguntaEnsayoDto, PreguntaEmparejamientoDto, PreguntaOpcionMultipleDto, PreguntaVerdaderoFalsoDto)
-from.QuestionsXml import QuestionXml
+from .QuestionsXml import QuestionXml
 
 class XmlParser:
     
@@ -9,16 +9,21 @@ class XmlParser:
 
         for question in questions:
             if isinstance(question, PreguntaEmparejamientoDto):
-                print("mayhaps")
+                preguntaEmparejamiento = QuestionXml.prguntaEmparejamiento(question)
+                xmlDocument += preguntaEmparejamiento
             elif isinstance(question, PreguntaEnsayoDto):
-                print(questions)
+                preguntaEnsayo = QuestionXml.preguntaEnsayo(question)
+                xmlDocument += preguntaEnsayo
             elif isinstance(question, PreguntaOpcionMultipleDto):
                 cantidadCorrectas = sum(1 for op in question.respuestas.respuestas.values() if op.ok is True)
                 preguntaMulti = QuestionXml.preguntaOpcionMultiple(question, cantidadCorrectas)
                 xmlDocument += preguntaMulti
-                print(xmlDocument)
             elif isinstance(question, PreguntaVerdaderoFalsoDto):
-                print("mayhaps")
+                preguntaVerdaderoFalso = QuestionXml.preguntaVerdaderoFalso(question)
+                xmlDocument += preguntaVerdaderoFalso
+            else:
+                print("crear nueva seccion de preguntas") # Se cambia la categoria de la seccion, ej CO -> E0, Rec01 -> R1 ...
+                
 
         with open("documento_xml.xml", "w", encoding="utf-8") as file:
             file.write(xmlDocument)

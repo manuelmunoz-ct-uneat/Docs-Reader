@@ -45,6 +45,7 @@ class Mapper():
                 preguntasDeActividad.append(preguntaEmparejamiento)
             elif data.get("tipo") == "V/F":
                 preguntaVerdaderoFalso = PreguntaVerdaderoFalsoDto.from_dict(data, numPregunta, datosActividad)
+                print(preguntaVerdaderoFalso)
                 preguntasDeActividad.append(preguntaVerdaderoFalso)
             elif data.get("tipo") == "ensayo":
                 preguntaEnsayo = PreguntaEnsayoDto.from_dict(data, numPregunta, datosActividad)
