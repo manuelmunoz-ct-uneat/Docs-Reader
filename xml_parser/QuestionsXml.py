@@ -1,4 +1,5 @@
-from Dtos import (PreguntaEnsayoDto, PreguntaEmparejamientoDto, PreguntaOpcionMultipleDto, PreguntaVerdaderoFalsoDto)
+from Dtos import (PreguntaEnsayoDto, PreguntaEmparejamientoDto,
+                  PreguntaOpcionMultipleDto, PreguntaVerdaderoFalsoDto, OpcionDeRespuestaEnsayoDto)
 import textwrap
 
 class QuestionXml:
@@ -62,12 +63,48 @@ class QuestionXml:
             bloquePregunta += "\t" + bloque.replace("\n", "\n\t") + "\n"
         bloquePregunta += "</question>\n"
         return bloquePregunta
-            
 
     
     @staticmethod
     def preguntaEnsayo(pregunta: PreguntaEnsayoDto):
-        return
+        respuestas = [QuestionXml.respuestasEnsayo(bloqueRespuesta) for bloqueRespuesta in pregunta.respuestas.respuestas.values()][0]
+        
+        return (f"""
+<question type="essay">
+    <name>
+        <text>{pregunta.nombre_pregunta}</text>
+    </name>
+    <questiontext format="html">
+        <text>
+            <![CDATA[ <p>{pregunta.preg}</p> ]]>
+        </text>
+    </questiontext>
+    <generalfeedback format="html">
+        <text>
+            <![CDATA[ <p>{respuestas.get("txt")}</p> ]]>
+        </text>
+    </generalfeedback>
+    <defaultgrade>1.0000000</defaultgrade>
+    <penalty>0.0000000</penalty>
+    <hidden>0</hidden>
+    <idnumber/>
+    <responseformat>editor</responseformat>
+    <responserequired>1</responserequired>
+    <responsefieldlines>10</responsefieldlines>
+    <minwordlimit/>
+    <maxwordlimit/>
+    <attachments>0</attachments>
+    <attachmentsrequired>0</attachmentsrequired>
+    <maxbytes>0</maxbytes>
+    <filetypeslist/>
+    <graderinfo format="html">
+        <text/>
+    </graderinfo>
+    <responsetemplate format="html">
+        <text/>
+    </responsetemplate>
+</question>
+        """) 
     
     @staticmethod
     def prguntaEmparejamiento(pregunta: PreguntaEmparejamientoDto):
@@ -135,8 +172,16 @@ class QuestionXml:
         return str((1/cantidadCorrectas)*100)
     
     @staticmethod
-    def asignarPuntaje(puntaje: str, esCorrecta: bool):
+    def asignarPuntaje(puntaje: str, esCorrecta: bool) -> str:
         return puntaje if esCorrecta == True else '0'
+    
+    @staticmethod
+    def respuestasEnsayo(pregunta: OpcionDeRespuestaEnsayoDto):
+        return {
+            "txt": pregunta.txt,
+            "tabla": pregunta.tabla,
+            "img": pregunta.img or None
+        }
     
 
         
