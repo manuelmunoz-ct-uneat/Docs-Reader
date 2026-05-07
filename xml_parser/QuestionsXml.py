@@ -8,6 +8,7 @@ class QuestionXml:
     @staticmethod
     def preguntaOpcionMultiple(pregunta: PreguntaOpcionMultipleDto, cantidadCorrectas: int):
         puntaje = QuestionXml.calcularPuntaje(cantidadCorrectas)
+        respuestas = [QuestionXml.respuestasDePregunta(bloquePregunta) for bloquePregunta in pregunta.respuestas.respuestas.values()]
         bloquePregunta = ""
         bloquePregunta += (f""" 
 <question type="multichoice">
@@ -47,16 +48,16 @@ class QuestionXml:
     </incorrectfeedback>
     <shownumcorrect/>
             """).strip()  + "\n"
-        for respuesta in pregunta.respuestas.respuestas.values():
+        for respuesta in respuestas:
             bloque = ""
             bloque += textwrap.dedent(f"""
-    <answer fraction="{QuestionXml.asignarPuntaje(puntaje, respuesta.ok)}" format="html">
+    <answer fraction="{QuestionXml.asignarPuntaje(puntaje, respuesta.get("ok"))}" format="html">
         <text>
-            <![CDATA[ <p>{respuesta.txt}</p> ]]>
+            <![CDATA[ <p>{respuesta.get("txt")}</p> ]]>
         </text>
         <feedback format="html">
             <text>
-                <![CDATA[ <p>{respuesta.retro}</p> ]]>
+                <![CDATA[ <p>{respuesta.get("retro")}</p> ]]>
             </text>
         </feedback>
     </answer>
@@ -166,7 +167,7 @@ class QuestionXml:
     @staticmethod
     def preguntaVerdaderoFalso(pregunta: PreguntaVerdaderoFalsoDto):
         bloquePregunta = ""
-        respuestas = [QuestionXml.respuestasVerdaderoFalso(bloquePregunta) for bloquePregunta in pregunta.respuestas.respuestas.values()]
+        respuestas = [QuestionXml.respuestasDePregunta(bloquePregunta) for bloquePregunta in pregunta.respuestas.respuestas.values()]
 
         bloquePregunta += (f"""
 <question type="truefalse">
@@ -213,7 +214,7 @@ class QuestionXml:
         return puntaje if esCorrecta == True else '0'
     
     @staticmethod
-    def respuestasVerdaderoFalso(respuesta: OpcionDeRespuestaDto):
+    def respuestasDePregunta(respuesta: OpcionDeRespuestaDto):
         return {
             "txt": respuesta.txt,
             "retro": respuesta.retro,
