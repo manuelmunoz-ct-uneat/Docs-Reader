@@ -5,7 +5,7 @@ class XmlParser:
     
     @staticmethod
     def parse(questions: list):
-        xmlDocument = ""
+        xmlDocument = "<quiz>\n"
 
         for question in questions:
             if isinstance(question, PreguntaEmparejamientoDto):
@@ -28,6 +28,7 @@ class XmlParser:
             else:
                 print("crear nueva seccion de preguntas") # Se cambia la categoria de la seccion, ej CO -> E0, Rec01 -> R1 ...
                 
+        xmlDocument += "</quiz>"
 
         with open("documento_xml.xml", "w", encoding="utf-8") as file:
             file.write(xmlDocument)
