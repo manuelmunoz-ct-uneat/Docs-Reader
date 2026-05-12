@@ -11,7 +11,6 @@ class RespuestaEmparejamientoDto:
         self.respuestas = {}
 
         for key, value in data.items():
-            print(value)
             self.respuestas[key] = value
     
     

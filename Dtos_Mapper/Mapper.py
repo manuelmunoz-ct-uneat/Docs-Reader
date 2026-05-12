@@ -2,12 +2,13 @@ from Dtos.PreguntaOpcionMultipleDto import PreguntaOpcionMultipleDto
 from Dtos.PreguntaEmparejamientoDto import PreguntaEmparejamientoDto
 from Dtos.PreguntaVerdaderoFalsoDto import PreguntaVerdaderoFalsoDto
 from Dtos.PreguntaEnsayoDto import PreguntaEnsayoDto
+from Dtos.CourseDataDto import CourseDataDto
 import re
 
 class Mapper():
 
     @staticmethod
-    def procesarCurso(course_route) -> dict[str, str]:
+    def procesarCurso(course_route):
         courseCodeRegex = r'^[A-Z]{2,4}\d{3,4}$'
         courseActivityType = {'co', 'rec01', 'rec02', 'test', 'tarea'}
         courseActivityLang = {'esp', 'ing', 'fra', 'por'}
@@ -16,15 +17,15 @@ class Mapper():
         course = course_route[(course_route.rfind('\\')+1):course_route.rfind('.')].split('-')
         course[len(course)-1] = course[len(course)-1].split('_')[0]
 
-        courseData = {}
+        courseData = CourseDataDto
 
         for data in course:
             if re.match(courseCodeRegex, data):
-                courseData.update({'courseId': data})
+                courseData.courseId =  data
             elif data.lower() in courseActivityType:
-                courseData.update({'courseActv': data})
+                courseData.courseActv = data
             elif data.lower() in courseActivityLang:
-                courseData.update({'courseLang': data})
+                courseData.courseLang = data.lower()
 
         return courseData
     

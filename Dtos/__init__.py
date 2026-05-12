@@ -4,3 +4,4 @@ from .PreguntaEmparejamientoDto import PreguntaEmparejamientoDto
 from .PreguntaVerdaderoFalsoDto import PreguntaVerdaderoFalsoDto
 from .RespuestaEnsayoDto import OpcionDeRespuestaEnsayoDto
 from .RespuestasDto import OpcionDeRespuestaDto
+from .CourseDataDto import CourseDataDto

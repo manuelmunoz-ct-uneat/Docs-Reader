@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from .CourseDataDto import CourseDataDto
 
 @dataclass
 class PreguntaDto:
@@ -7,11 +8,11 @@ class PreguntaDto:
     tipo: str
     img: dict[str, str] | None
 
-    def __init__(self, jsonData, numeroPregunta, datosActividad):
+    def __init__(self, jsonData, numeroPregunta, datosActividad: CourseDataDto):
         numeroPregunta = str(numeroPregunta).zfill(3)
-        courseId = datosActividad.get("courseId")
-        lang = datosActividad.get("courseLang")
-        tipoDeActividad = self.setTipoActividad(datosActividad.get("courseActv"))
+        courseId = datosActividad.courseId
+        lang = datosActividad.courseLang
+        tipoDeActividad = self.setTipoActividad(datosActividad.courseActv)
 
         self.nombre_pregunta = f'{courseId}-{lang}-X1-{tipoDeActividad}-{numeroPregunta}'
 
