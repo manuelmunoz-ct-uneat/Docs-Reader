@@ -1,29 +1,34 @@
 from Dtos import (PreguntaEnsayoDto, PreguntaEmparejamientoDto, PreguntaOpcionMultipleDto, PreguntaVerdaderoFalsoDto)
-from .QuestionsXml import QuestionXml
+from .QuestionsXml import MoodleXml
 
 class XmlParser:
     
     @staticmethod
     def parse(questions: list):
-        xmlDocument = ""
+        xmlDocument = "<quiz>\n"
 
         for question in questions:
             if isinstance(question, PreguntaEmparejamientoDto):
-                preguntaEmparejamiento = QuestionXml.prguntaEmparejamiento(question)
+                preguntaEmparejamiento = MoodleXml.prguntaEmparejamiento(question)
                 xmlDocument += preguntaEmparejamiento
+                
             elif isinstance(question, PreguntaEnsayoDto):
-                preguntaEnsayo = QuestionXml.preguntaEnsayo(question)
+                preguntaEnsayo = MoodleXml.preguntaEnsayo(question)
                 xmlDocument += preguntaEnsayo
+
             elif isinstance(question, PreguntaOpcionMultipleDto):
                 cantidadCorrectas = sum(1 for op in question.respuestas.respuestas.values() if op.ok is True)
-                preguntaMulti = QuestionXml.preguntaOpcionMultiple(question, cantidadCorrectas)
+                preguntaMulti = MoodleXml.preguntaOpcionMultiple(question, cantidadCorrectas)
                 xmlDocument += preguntaMulti
+
             elif isinstance(question, PreguntaVerdaderoFalsoDto):
-                preguntaVerdaderoFalso = QuestionXml.preguntaVerdaderoFalso(question)
+                preguntaVerdaderoFalso = MoodleXml.preguntaVerdaderoFalso(question)
                 xmlDocument += preguntaVerdaderoFalso
+
             else:
-                print("crear nueva seccion de preguntas") # Se cambia la categoria de la seccion, ej CO -> E0, Rec01 -> R1 ...
+                xmlDocument += MoodleXml.crearNuevaCategoria(question)
                 
+        xmlDocument += "</quiz>"
 
         with open("documento_xml.xml", "w", encoding="utf-8") as file:
             file.write(xmlDocument)
