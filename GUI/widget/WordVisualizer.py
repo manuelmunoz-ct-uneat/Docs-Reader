@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from PySide6.QtWidgets import (QApplication, QWidget, QPushButton, QTextEdit, QComboBox, QFileDialog, QHBoxLayout, QVBoxLayout, QTextBrowser)
+from PySide6.QtWidgets import (QWidget, QPushButton, QComboBox, QFileDialog, QVBoxLayout)
 from word_maneger.FileReader import FileReader
 from GUI.components.TextBox import JsonFormater
 from Dtos_Mapper.Mapper import Mapper
