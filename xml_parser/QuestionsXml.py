@@ -1,6 +1,6 @@
 from Dtos import (PreguntaEnsayoDto, PreguntaEmparejamientoDto,
                   PreguntaOpcionMultipleDto, PreguntaVerdaderoFalsoDto,
-                  OpcionDeRespuestaEnsayoDto, OpcionDeRespuestaDto)
+                  OpcionDeRespuestaEnsayoDto, OpcionDeRespuestaDto, CourseDataDto)
 import textwrap
 
 class MoodleXml:
@@ -210,6 +210,24 @@ class MoodleXml:
 
         bloquePregunta += "</question>\n"
         return bloquePregunta
+    
+    @staticmethod
+    def crearNuevaCategoria(bloqueDeCategoria: CourseDataDto):
+        bloque = "\t"
+        xmlContent = textwrap.dedent(f"""
+                <question type="category">
+                    <category>
+                        <text>$course$/top/{bloqueDeCategoria.courseLang}/{MoodleXml.tipoActividad(bloqueDeCategoria.courseActv)}</text>
+                    </category>
+                    <info format="html">
+                        <text/>
+                    </info>
+                    <idnumber/>
+                </question>
+            """).strip()
+        bloque = textwrap.indent(xmlContent, "\t")
+        return bloque + "\n"
+
 
     @staticmethod
     def calcularPuntaje(cantidadCorrectas: int) -> str:
@@ -235,6 +253,19 @@ class MoodleXml:
             "tabla": respuesta.tabla,
             "img": respuesta.img or None
         }
+    
+    @staticmethod
+    def tipoActividad(actividad: str):
+        if actividad == "CO":
+            return "examen"
+        elif actividad == "Test":
+            return "auto"
+        elif actividad == "Tarea":
+            return "reflexion"
+        elif actividad == "Rec01":
+            return "recuperacion 1"
+        elif actividad == "Rec02":
+            return "recuperacion 2"
     
 
         

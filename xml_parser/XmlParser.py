@@ -26,7 +26,7 @@ class XmlParser:
                 xmlDocument += preguntaVerdaderoFalso
 
             else:
-                print("crear nueva seccion de preguntas") # Se cambia la categoria de la seccion, ej CO -> E0, Rec01 -> R1 ...
+                xmlDocument += MoodleXml.crearNuevaCategoria(question)
                 
         xmlDocument += "</quiz>"
 
