@@ -147,14 +147,15 @@ class QuestionXml:
         """)
 
         for respuesta in pregunta.respuestas.respuestas.values():
+            print(respuesta)
             bloque = ""
             bloque += textwrap.dedent(f"""
     <subquestion format="html">
         <text>
-            <![CDATA[ <p>{respuesta.tabla.get("c0")}</p> ]]>
+            <![CDATA[ <p>{respuesta.get("c0")}</p> ]]>
         </text>
         <answer>
-            <text>{respuesta.tabla.get("c1")}</text>
+            <text>{respuesta.get("c1")}</text>
         </answer>
     </subquestion>
             """).strip()
