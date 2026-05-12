@@ -40,10 +40,6 @@ class WordUploadWidget(QWidget):
                 paragraph = document.parse_to_json()
                 dtoData: list = Mapper.tipoPregunta(fileLocation, paragraph)
                 XmlParser.parse(dtoData)
-                # print(f"{dtoData}\n")
-                # for obj in dtoData:
-                #      if isinstance(obj, RespuestaDto):
-                #         print(f"{obj.respuestas}\n")
                 self.textbox.setJson(paragraph)
             else:
                 print('Got Nothing')
