@@ -1,12 +1,11 @@
 from dataclasses import dataclass
-from .TablaDto import TablaDto
 from typing import Dict
 from typing import Any
 
 @dataclass
 class OpcionDeRespuestaEnsayoDto:
     txt: str
-    tabla: TablaDto | None
+    tabla: dict[str, dict[str, str]]
     img: dict[str, str] | None
 
 
