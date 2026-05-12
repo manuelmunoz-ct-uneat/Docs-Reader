@@ -1,5 +1,5 @@
 from Dtos import (PreguntaEnsayoDto, PreguntaEmparejamientoDto, PreguntaOpcionMultipleDto, PreguntaVerdaderoFalsoDto)
-from .QuestionsXml import QuestionXml
+from .QuestionsXml import MoodleXml
 
 class XmlParser:
     
@@ -9,20 +9,20 @@ class XmlParser:
 
         for question in questions:
             if isinstance(question, PreguntaEmparejamientoDto):
-                preguntaEmparejamiento = QuestionXml.prguntaEmparejamiento(question)
+                preguntaEmparejamiento = MoodleXml.prguntaEmparejamiento(question)
                 xmlDocument += preguntaEmparejamiento
                 
             elif isinstance(question, PreguntaEnsayoDto):
-                preguntaEnsayo = QuestionXml.preguntaEnsayo(question)
+                preguntaEnsayo = MoodleXml.preguntaEnsayo(question)
                 xmlDocument += preguntaEnsayo
 
             elif isinstance(question, PreguntaOpcionMultipleDto):
                 cantidadCorrectas = sum(1 for op in question.respuestas.respuestas.values() if op.ok is True)
-                preguntaMulti = QuestionXml.preguntaOpcionMultiple(question, cantidadCorrectas)
+                preguntaMulti = MoodleXml.preguntaOpcionMultiple(question, cantidadCorrectas)
                 xmlDocument += preguntaMulti
 
             elif isinstance(question, PreguntaVerdaderoFalsoDto):
-                preguntaVerdaderoFalso = QuestionXml.preguntaVerdaderoFalso(question)
+                preguntaVerdaderoFalso = MoodleXml.preguntaVerdaderoFalso(question)
                 xmlDocument += preguntaVerdaderoFalso
 
             else:

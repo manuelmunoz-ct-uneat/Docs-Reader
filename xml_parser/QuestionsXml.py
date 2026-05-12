@@ -3,12 +3,12 @@ from Dtos import (PreguntaEnsayoDto, PreguntaEmparejamientoDto,
                   OpcionDeRespuestaEnsayoDto, OpcionDeRespuestaDto)
 import textwrap
 
-class QuestionXml:
+class MoodleXml:
 
     @staticmethod
     def preguntaOpcionMultiple(pregunta: PreguntaOpcionMultipleDto, cantidadCorrectas: int):
-        puntaje = QuestionXml.calcularPuntaje(cantidadCorrectas)
-        respuestas = [QuestionXml.respuestasDePregunta(bloquePregunta) for bloquePregunta in pregunta.respuestas.respuestas.values()]
+        puntaje = MoodleXml.calcularPuntaje(cantidadCorrectas)
+        respuestas = [MoodleXml.respuestasDePregunta(bloquePregunta) for bloquePregunta in pregunta.respuestas.respuestas.values()]
         bloquePregunta = ""
         bloquePregunta += (f""" 
 <question type="multichoice">
@@ -51,7 +51,7 @@ class QuestionXml:
         for respuesta in respuestas:
             bloque = ""
             bloque += textwrap.dedent(f"""
-    <answer fraction="{QuestionXml.asignarPuntaje(puntaje, respuesta.get("ok"))}" format="html">
+    <answer fraction="{MoodleXml.asignarPuntaje(puntaje, respuesta.get("ok"))}" format="html">
         <text>
             <![CDATA[ <p>{respuesta.get("txt")}</p> ]]>
         </text>
@@ -68,7 +68,7 @@ class QuestionXml:
 
     @staticmethod
     def preguntaEnsayo(pregunta: PreguntaEnsayoDto):
-        respuestas = [QuestionXml.respuestasEnsayo(bloqueRespuesta) for bloqueRespuesta in pregunta.respuestas.respuestas.values()][0]
+        respuestas = [MoodleXml.respuestasEnsayo(bloqueRespuesta) for bloqueRespuesta in pregunta.respuestas.respuestas.values()][0]
         
         return (f"""
 <question type="essay">
@@ -168,7 +168,7 @@ class QuestionXml:
     @staticmethod
     def preguntaVerdaderoFalso(pregunta: PreguntaVerdaderoFalsoDto):
         bloquePregunta = ""
-        respuestas = [QuestionXml.respuestasDePregunta(bloquePregunta) for bloquePregunta in pregunta.respuestas.respuestas.values()]
+        respuestas = [MoodleXml.respuestasDePregunta(bloquePregunta) for bloquePregunta in pregunta.respuestas.respuestas.values()]
 
         bloquePregunta += (f"""
 <question type="truefalse">
@@ -192,7 +192,7 @@ class QuestionXml:
         for respuesta in respuestas:
             bloque = ""
             bloque += textwrap.dedent(f"""
-    <answer fraction="{QuestionXml.asignarPuntaje("100", respuesta.get("ok"))}" format="moodle_auto_format">
+    <answer fraction="{MoodleXml.asignarPuntaje("100", respuesta.get("ok"))}" format="moodle_auto_format">
         <text>{"true" if respuesta.get("ok") else "false"}</text>
         <feedback format="html">
             <text>
