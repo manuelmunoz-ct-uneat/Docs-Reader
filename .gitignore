@@ -2,3 +2,6 @@ __pycache__/
 /test
 dato*
 documento*
+/build
+/dist
+*spec
