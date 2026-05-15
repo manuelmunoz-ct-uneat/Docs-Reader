@@ -108,7 +108,7 @@ class MoodleXml:
                     <text/>
                 </responsetemplate>
             </question>
-        """)
+        """).strip() + "\n"
         return bloquePreguntas
     
     @staticmethod
@@ -148,7 +148,7 @@ class MoodleXml:
                     </text>
                 </incorrectfeedback>
                 <shownumcorrect/>
-        """)
+        """).strip() + "\n"
 
         for respuesta in pregunta.respuestas.respuestas.values():
             bloque = ""
