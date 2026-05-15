@@ -1,5 +1,5 @@
 from Dtos import (PreguntaEnsayoDto, PreguntaEmparejamientoDto, PreguntaOpcionMultipleDto, PreguntaVerdaderoFalsoDto)
-from .QuestionsXml import MoodleXml
+from .MoodleXml import MoodleXml
 
 class XmlParser:
     
