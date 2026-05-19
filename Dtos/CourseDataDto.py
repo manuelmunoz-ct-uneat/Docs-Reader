@@ -1,7 +1,6 @@
-from dataclasses import dataclass
+from pydantic import BaseModel
 
-@dataclass
-class CourseDataDto():
+class CourseDataDto(BaseModel):
     courseId: str
     courseActv: str
     courseLang: str

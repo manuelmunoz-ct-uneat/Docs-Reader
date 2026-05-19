@@ -1,24 +1,14 @@
-from dataclasses import dataclass
-from typing import Dict
-from typing import Any
+from pydantic import BaseModel
 
-
-@dataclass
-class RespuestaEmparejamientoDto:
-    respuestas: Dict[str, dict[str, str]]
-
-    def __init__(self, data: dict[str, Any]):
-        self.respuestas = {}
-
-        for key, value in data.items():
-            self.respuestas[key] = value
-    
-    
+class RespuestaEmparejamientoDto(BaseModel):
+    respuestas: dict[str, dict[str, str]]
 
     @classmethod
     def from_dict(cls, data: dict):
-        return cls(data)
-    
 
+        respuestas = {}
 
-        
+        for key, value in data.items():
+            respuestas[key] = value
+
+        return cls(respuestas=respuestas)

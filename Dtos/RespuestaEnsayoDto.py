@@ -1,29 +1,26 @@
-from dataclasses import dataclass
+from pydantic import BaseModel
 from typing import Dict
-from typing import Any
 
-@dataclass
-class OpcionDeRespuestaEnsayoDto:
-    txt: str
-    tabla: dict[str, dict[str, str]]
-    img: dict[str, str] | None
+class OpcionDeRespuestaEnsayoDto(BaseModel):
+    txt: str | dict[str, str]
+    tabla: dict[str, dict] | None
+    img: dict[str, str] | None = None
 
 
-@dataclass
-class RespuestaEnsayoDto:
+class RespuestaEnsayoDto(BaseModel):
     respuestas: Dict[str, OpcionDeRespuestaEnsayoDto]
-
-    def __init__(self, data: dict[str, Any]):
-        self.respuestas = {}
-
-        for key, value in data.items():
-            self.respuestas[key] = OpcionDeRespuestaEnsayoDto(
-                value.get("txt", ""),
-                value.get("tablas", ""),
-                value.get("img", None)
-            )
 
     @classmethod
     def from_dict(cls, data: dict):
-        return cls(data)
-        
+
+        respuestas = {}
+
+        for key, value in data.items():
+
+            respuestas[key] = OpcionDeRespuestaEnsayoDto(
+                txt=value.get("txt"),
+                tabla=value.get("tablas"),
+                img=value.get("img", None)
+            )
+
+        return cls(respuestas=respuestas)
