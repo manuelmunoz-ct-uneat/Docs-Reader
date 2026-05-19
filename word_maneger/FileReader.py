@@ -350,8 +350,9 @@ class FileReader:
                     and not any(k.startswith('f') for k in pregunta_actual['ops'])
                     and estilo not in ('aPREGUNTA', 'ListParagraph')):
                 op = pregunta_actual['ops']['a']
+                prefijo   = self._prefijo_viñeta(estilo, nivel)
                 separador = '\n' if op['txt'] else ''
-                op['txt'] = op['txt'] + separador + texto
+                op['txt'] = op['txt'] + separador + prefijo + texto
                 continue
 
             # ── Tabla → filas como opciones ────────────────────────────
@@ -419,8 +420,9 @@ class FileReader:
                 )
                 if es_retro_ensayo:
                     op = pregunta_actual['ops']['a'] # type: ignore[attr-defined]
+                    prefijo   = self._prefijo_viñeta(estilo, nivel)
                     separador = '\n' if op['txt'] else ''
-                    op['txt'] = op['txt'] + separador + texto
+                    op['txt'] = op['txt'] + separador + prefijo + texto
                     continue
 
                 num_pregunta += 1
@@ -665,17 +667,40 @@ class FileReader:
         
     def detectar_blip(self, cell: _Cell) -> dict | None:
         """
-        Extrae todas las imágenes embebidas en una celda de tabla.
-        Devuelve  [{'b64': ..., 'fmt': ...}, ...]  o  None si no hay imágenes.
+        Extrae la primera imagen embebida en una celda de tabla.
+        Devuelve  {'b64': ..., 'fmt': ...}  o  None si no hay imagen.
         """
-        imagenes = {}
         for blip in cell._element.findall(f'.//{{{A_NS}}}blip'):
             rid = blip.get(R_EMB)
             if rid:
                 img = self._extract_image_b64(rid)
                 if img:
-                    imagenes.update(img)
-        return imagenes if imagenes else None
+                    return img
+        return None
+
+    # ── Mapa de estilos de Word → prefijo de viñeta ─────────────────────
+    # Preserva la estructura visual de la retroalimentación de ensayo.
+    _PREFIJOS_ESTILO: dict[str, str] = {
+        'aP-Razon-Bolitas': '•    ',
+        'Bolitas':          '•    ',
+        'Listas-3N':        '  •    ',
+        'Listas-2N':        '  •    ',
+        'Listas-A3':        '    •    ',
+        'Listas-A1':        '      •    ',
+    }
+
+    @classmethod
+    def _prefijo_viñeta(cls, estilo: str, nivel) -> str:
+        """
+        Devuelve el prefijo de viñeta según el estilo del párrafo.
+        Se usa al acumular la retroalimentación de preguntas de ensayo
+        para preservar la distinción entre párrafos y puntos de lista.
+        """
+        if estilo in cls._PREFIJOS_ESTILO:
+            return cls._PREFIJOS_ESTILO[estilo]
+        if nivel == 1:
+            return '• '
+        return ''
 
     def asignar_tipo(self, datos):
         for pregunta in datos.values():
@@ -697,8 +722,5 @@ class FileReader:
 
             elif num_ops >= 3:
                 pregunta['tipo'] = 'multi'
-
-            else:
-                pregunta['tipo'] = 'ensayo'
 
         return datos
