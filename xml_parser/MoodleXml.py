@@ -1,7 +1,8 @@
 from Dtos import (PreguntaEnsayoDto, PreguntaEmparejamientoDto,
                   PreguntaOpcionMultipleDto, PreguntaVerdaderoFalsoDto,
-                  OpcionDeRespuestaEnsayoDto, OpcionDeRespuestaDto, CourseDataDto)
+                  OpcionDeRespuestaDto, CourseDataDto, OpcionDeRespuestaEnsayoDto)
 import textwrap
+import time
 
 class MoodleXml:
 
@@ -17,8 +18,17 @@ class MoodleXml:
                 </name>
                 <questiontext format="html">
                     <text>
-                        <![CDATA[ <p>{pregunta.preg}</p> ]]>
-                    </text>
+        """)
+        if pregunta.img:
+            nombreDeImagen = MoodleXml.crearNombreImg()
+            imagen = pregunta.img.get("b64")
+            formato = pregunta.img.get("fmt")
+            bloquePregunta += f'<![CDATA[ <p>{pregunta.preg}</p> <p><img class="img-fluid" src="@@PLUGINFILE@@/{nombreDeImagen}.{formato}"></p> ]]>'
+            bloquePregunta += MoodleXml.crearBloqueImagen(nombreDeImagen, imagen, formato)
+        else:
+            bloquePregunta += f'<![CDATA[ <p>{pregunta.preg}</p> ]]>'
+
+        bloquePregunta += ("""</text>
                 </questiontext>
                 <generalfeedback format="html">
                     <text/>
@@ -48,20 +58,29 @@ class MoodleXml:
                 </incorrectfeedback>
                 <shownumcorrect/>
             """).strip()  + "\n"
-        for respuesta in respuestas:
+        for respuesta in respuestas: # type: ignore[attr-defined]
+            respuesta: OpcionDeRespuestaDto
             bloque = ""
             xmlContent = textwrap.dedent(f"""
-                <answer fraction="{MoodleXml.asignarPuntaje(puntaje, respuesta.get("ok"))}" format="html">
+                <answer fraction="{MoodleXml.asignarPuntaje(puntaje, respuesta.ok)}" format="html">
                     <text>
-                        <![CDATA[ <p>{respuesta.get("txt")}</p> ]]>
+                        <![CDATA[ <p>{respuesta.txt}</p> ]]>
                     </text>
                     <feedback format="html">
                         <text>
-                            <![CDATA[ <p>{respuesta.get("retro")}</p> ]]>
+                            <![CDATA[ <p>{respuesta.retro}</p> ]]>
                         </text>
                     </feedback>
-                </answer>
-            """).strip()
+            """).strip() + "\n"
+
+            if respuesta.img is not None:
+                nombreDeImagen = MoodleXml.crearNombreImg()
+                imagen = respuesta.img.get("b64")
+                formato = respuesta.img.get("fmt")
+                xmlContent += MoodleXml.crearBloqueImagen(nombreDeImagen, imagen, formato)
+            
+            xmlContent += "</answer>\n"
+
             bloque += textwrap.indent(xmlContent, "\t")
             bloquePregunta += "\t" + bloque.replace("\n", "\n\t") + "\n"
 
@@ -70,23 +89,84 @@ class MoodleXml:
 
     @staticmethod
     def preguntaEnsayo(pregunta: PreguntaEnsayoDto):
-        respuestas = [MoodleXml.respuestasEnsayo(bloqueRespuesta) for bloqueRespuesta in pregunta.respuestas.respuestas.values()][0]
-        bloquePreguntas = "\t"
+        bloquePregunta = ""
 
-        bloquePreguntas += (f"""
+        bloquePregunta += (f"""
             <question type="essay">
                 <name>
                     <text>{pregunta.nombre_pregunta}</text>
                 </name>
                 <questiontext format="html">
                     <text>
-                        <![CDATA[ <p>{pregunta.preg}</p> ]]>
-                    </text>
+        """)
+        if pregunta.img:
+            nombreDeImagen = MoodleXml.crearNombreImg()
+            imagen = pregunta.img.get("b64")
+            formato = pregunta.img.get("fmt")
+            bloquePregunta += f'<![CDATA[ <p>{pregunta.preg}</p> <p><img class="img-fluid" src="@@PLUGINFILE@@/{nombreDeImagen}.{formato}"></p> ]]>'
+            bloquePregunta += MoodleXml.crearBloqueImagen(nombreDeImagen, imagen, formato)
+        else:
+            bloquePregunta += f'<![CDATA[ <p>{pregunta.preg}</p> ]]>'
+                           
+        bloquePregunta += ("""</text>
                 </questiontext>
                 <generalfeedback format="html">
                     <text>
-                        <![CDATA[ <p>{respuestas.get("txt")}</p> ]]>
-                    </text>
+            """)
+        
+        cData = "<![CDATA[ "
+        imagenes = ""
+        
+        for respuesta in pregunta.respuestas.respuestas.values():
+
+            if respuesta.img is not None:
+
+                nombreDeImagen = MoodleXml.crearNombreImg()
+                imagen = respuesta.img.get("b64")
+                formato = respuesta.img.get("fmt")
+                
+                cData += f'<p>{respuesta.txt}</p> <p><img class="img-fluid" src="@@PLUGINFILE@@/{nombreDeImagen}.{formato}">'
+                imagenes += MoodleXml.crearBloqueImagen(nombreDeImagen, imagen, formato)
+            
+            else:
+                cData += f"<p>{respuesta.txt}</p>"
+            
+            
+            if respuesta.tabla is not None:
+                cData += f'<p>{respuesta.txt}</p> <table style="border-collapse: collapse; width: 100%;" border="1"><colgroup><col style="width: 33.3333%;"><col style="width: 33.3333%;"><col style="width: 33.3333%;"></colgroup> <tbody> '
+                for fila in respuesta.tabla.values():
+                    cData += '<tr> '
+
+                    for columna in fila.values():
+
+                        if isinstance(columna, dict):
+
+                            texto = columna.get("txt", "")
+
+                            cData += f'<td>{texto}'
+
+                            if columna.get("img"):
+                                nombreDeImagen = MoodleXml.crearNombreImg()
+                                imagen = columna["img"].get("b64")
+                                formato = columna["img"].get("fmt")
+
+                                cData += f'<p><img class="img-fluid" src="@@PLUGINFILE@@/{nombreDeImagen}.{formato}"></p>'
+
+                                imagenes += MoodleXml.crearBloqueImagen(nombreDeImagen, imagen, formato)
+
+                            cData += '</td> '
+
+                        else:
+                            cData += f'<td>{columna}</td> '
+
+                    cData += '</tr> '
+                cData += '</tbody> </table>'
+
+        cData += ' ]]>'
+        bloquePregunta += cData + "\n</text>"
+        bloquePregunta += imagenes + "\n"
+
+        bloquePregunta += ("""
                 </generalfeedback>
                 <defaultgrade>1.0000000</defaultgrade>
                 <penalty>0.0000000</penalty>
@@ -109,10 +189,11 @@ class MoodleXml:
                 </responsetemplate>
             </question>
         """).strip() + "\n"
-        return bloquePreguntas
+        return bloquePregunta
     
     @staticmethod
     def prguntaEmparejamiento(pregunta: PreguntaEmparejamientoDto):
+
         bloquePregunta = "\t"
         bloquePregunta += (f"""
             <question type="matching">
@@ -121,8 +202,18 @@ class MoodleXml:
                 </name>
                 <questiontext format="html">
                     <text>
-                        <![CDATA[ <p>{pregunta.preg}</p> ]]>
-                    </text>
+        """)
+
+        if pregunta.img:
+            nombreDeImagen = MoodleXml.crearNombreImg()
+            imagen = pregunta.img.get("b64")
+            formato = pregunta.img.get("fmt")
+            bloquePregunta += f'<![CDATA[ <p>{pregunta.preg}</p> <p><img class="img-fluid" src="@@PLUGINFILE@@/{nombreDeImagen}.{formato}"></p> ]]>'
+            bloquePregunta += MoodleXml.crearBloqueImagen(nombreDeImagen, imagen, formato)
+        else:
+            bloquePregunta += f'<![CDATA[ <p>{pregunta.preg}</p> ]]>'
+        
+        bloquePregunta += ("""</text>
                 </questiontext>
                 <generalfeedback format="html">
                     <text/>
@@ -156,12 +247,21 @@ class MoodleXml:
                 <subquestion format="html">
                     <text>
                         <![CDATA[ <p>{respuesta.get("c0")}</p> ]]>
-                    </text>
-                    <answer>
-                        <text>{respuesta.get("c1")}</text>
-                    </answer>
-                </subquestion>
-            """).strip()
+                    </text>""").strip() + "\n"
+            
+            if respuesta.get("img") is not None:
+                nombreDeImagen = MoodleXml.crearNombreImg()
+                imagen = respuesta["img"].get("b64") # type: ignore[attr-defined]
+                formato = respuesta["img"].get("fmt") # type: ignore[attr-defined]
+                xmlContent += MoodleXml.crearBloqueImagen(nombreDeImagen, imagen, formato)
+
+            xmlContent += textwrap.dedent(f"""
+                <answer>
+                    <text>{respuesta.get("c1")}</text>
+                </answer>
+            </subquestion>
+            """).strip() + "\n"
+
             bloque += textwrap.indent(xmlContent, "\t")
             bloquePregunta += "\t" + bloque.replace("\n", "\n\t") + "\n"
 
@@ -181,7 +281,18 @@ class MoodleXml:
                 </name>
                 <questiontext format="html">
                     <text>
-                        <![CDATA[ <p>{pregunta.preg}</p> ]]>
+        """).strip() + "\n"
+
+        if pregunta.img:
+            nombreDeImagen = MoodleXml.crearNombreImg()
+            imagen = pregunta.img.get("b64")
+            formato = pregunta.img.get("fmt")
+            bloquePregunta += f'<![CDATA[ <p>{pregunta.preg}</p> <p><img class="img-fluid" src="@@PLUGINFILE@@/{nombreDeImagen}.{formato}"></p> ]]>'
+            bloquePregunta += MoodleXml.crearBloqueImagen(nombreDeImagen, imagen, formato)
+        else:
+            bloquePregunta += f'<![CDATA[ <p>{pregunta.preg}</p> ]]>'
+
+        bloquePregunta += ("""
                     </text>
                 </questiontext>
                 <generalfeedback format="html">
@@ -193,18 +304,28 @@ class MoodleXml:
                 <idnumber/>
         """).strip()  + "\n"
         
-        for respuesta in respuestas:
+        for respuesta in respuestas: # type: ignore[attr-defined]
+            respuesta: OpcionDeRespuestaDto
             bloque = ""
             xmlContent = textwrap.dedent(f"""
-                <answer fraction="{MoodleXml.asignarPuntaje("100", respuesta.get("ok"))}" format="moodle_auto_format">
-                    <text>{"true" if respuesta.get("ok") else "false"}</text>
+                <answer fraction="{MoodleXml.asignarPuntaje("100", respuesta.ok)}" format="moodle_auto_format">
+                    <text>{"true" if respuesta.ok else "false"}</text>
                     <feedback format="html">
                         <text>
-                            <![CDATA[ <p>{respuesta.get("retro")}</p> ]]>
+                            <![CDATA[ <p>{respuesta.retro}</p> ]]>
                         </text>
-                    </feedback>
-                </answer>
             """).strip()
+
+            if respuesta.img is not None:
+                nombreDeImagen = MoodleXml.crearNombreImg()
+                imagen = respuesta.img.get("b64")
+                formato = respuesta.img.get("fmt")
+                xmlContent += MoodleXml.crearBloqueImagen(nombreDeImagen, imagen, formato)
+            
+            xmlContent += ("""
+                        </feedback>
+                    </answer>\n""")
+            
             bloque += textwrap.indent(xmlContent, "\t")
             bloquePregunta += "\t" + bloque.replace("\n", "\n\t") + "\n"
 
@@ -235,7 +356,7 @@ class MoodleXml:
     
     @staticmethod
     def asignarPuntaje(puntaje: str, esCorrecta) -> str:
-        return puntaje if esCorrecta == True else '0'
+        return puntaje if esCorrecta else '0'
     
     @staticmethod
     def respuestasDePregunta(respuesta: OpcionDeRespuestaDto):
@@ -243,14 +364,6 @@ class MoodleXml:
             "txt": respuesta.txt,
             "retro": respuesta.retro,
             "ok": respuesta.ok,
-            "img": respuesta.img or None
-        }
-
-    @staticmethod
-    def respuestasEnsayo(respuesta: OpcionDeRespuestaEnsayoDto):
-        return {
-            "txt": respuesta.txt,
-            "tabla": respuesta.tabla,
             "img": respuesta.img or None
         }
     
@@ -266,6 +379,18 @@ class MoodleXml:
             return "recuperacion 1"
         elif actividad == "Rec02":
             return "recuperacion 2"
+    
+    @staticmethod
+    def crearNombreImg():
+        return str(time.time()).replace(".", str(ord(".")))
+    
+    @staticmethod
+    def crearBloqueImagen(nombreDeImagen, imagen, formato):
+        return (
+            f'<file name="{nombreDeImagen}.{formato}" path="/"\n'
+            f'encoding="base64">{imagen}\n'
+            f'</file>'
+        )
     
 
         
