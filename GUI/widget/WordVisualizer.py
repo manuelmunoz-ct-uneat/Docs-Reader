@@ -8,7 +8,8 @@ from xml_parser.XmlParser import XmlParser
 
 class WordUploadWidget(QWidget):
     FILE_FILTER = 'Word file (*.doc *.docx)'
-
+    dtoData = []
+    courseInfo = paragraph = ""
     def __init__(self):
         super().__init__()
         self.window_width, self.window_height = 400, 100
@@ -17,10 +18,10 @@ class WordUploadWidget(QWidget):
         layout = QVBoxLayout()
         self.setLayout(layout)
 
-        self.options = ('Open file')
+        self.options = ('Open file',  'Save file')
 
         self.combo = QComboBox()
-        self.combo.addItem(self.options)
+        self.combo.addItems(self.options)
         layout.addWidget(self.combo)
 
         btn = QPushButton('Launch')
@@ -33,14 +34,15 @@ class WordUploadWidget(QWidget):
 
     def launchDialog(self):
             option = self.options.index(self.combo.currentText())
-
             if option == 0:
-                fileLocation = self.getFileName()
-                document = FileReader(fileLocation)
-                paragraph = document.parse_to_json()
-                dtoData: list = Mapper.tipoPregunta(fileLocation, paragraph)
-                XmlParser.parse(dtoData)
-                self.textbox.setJson(paragraph)
+                self.courseInfo = self.getFileName()
+                document = FileReader(self.courseInfo)
+                self.paragraph = document.parse_to_json()
+                self.textbox.setJson(self.paragraph)
+            elif option == 1:
+                dtoData = Mapper.tipoPregunta(self.courseInfo, self.paragraph)
+                xmlInfo = XmlParser.parse(dtoData)
+                self.saveFile(xmlInfo)
             else:
                 print('Got Nothing')
 
@@ -53,3 +55,17 @@ class WordUploadWidget(QWidget):
             filter=self.FILE_FILTER,
         )
         return Path(response)
+    
+    def saveFile(self, infoXml):
+
+        ruta, _ = QFileDialog.getSaveFileName(
+            self,
+            "Guardar",
+            "",
+            "Xml (*.xml)"
+        )
+
+        if ruta:
+
+            with open(ruta, "w", encoding="utf-8") as f:
+                f.write(infoXml)

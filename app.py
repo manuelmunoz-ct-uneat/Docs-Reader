@@ -1,4 +1,4 @@
-from GUI.widget import ControlWidget, WordVisualizer
+from GUI.widget import WordVisualizer
 from PySide6.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QWidget
 
 # Necesita una (y solo una) instancia de QApplication por aplicación.
@@ -12,8 +12,6 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle("Lector de documentos Word")
         
-        # controlPanel1 = ControlWidget.ControlWidget("Controles")
-        # controlPanel2 = ControlWidget.ControlWidget("Visualizador")
         wordVisualizer = WordVisualizer.WordUploadWidget()
 
         vLayOut = QHBoxLayout()
@@ -22,11 +20,8 @@ class MainWindow(QMainWindow):
         
         vWidgetContainer.setLayout(vLayOut)
         self.setCentralWidget(vWidgetContainer)
-        # self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, controlPanel1)
-        # self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, controlPanel2)
 
 window = MainWindow()
 window.showMaximized()
 
-# Empieza el ciclo de eventos de Qt
 app.exec()
