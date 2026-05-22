@@ -19,7 +19,6 @@ class MainWindow(QMainWindow):
         vLayOut = QHBoxLayout()
         vWidgetContainer = QWidget()
         vLayOut.addWidget(wordVisualizer)
-        # vLayOut.addWidget(controlPanel1)
         
         vWidgetContainer.setLayout(vLayOut)
         self.setCentralWidget(vWidgetContainer)
