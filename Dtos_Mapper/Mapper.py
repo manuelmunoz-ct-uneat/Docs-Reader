@@ -32,7 +32,7 @@ class Mapper():
 
     @classmethod
     def tipoPregunta(cls, courseData, dataJson):
-        
+
         preguntasDeActividad = []
         datosActividad = cls.procesarCurso(courseData)
         preguntasDeActividad.append(datosActividad)
@@ -49,6 +49,7 @@ class Mapper():
                 preguntasDeActividad.append(preguntaVerdaderoFalso)
             elif data.get("tipo") == "ensayo":
                 preguntaEnsayo = PreguntaEnsayoDto.from_dict(data, numPregunta, datosActividad)
+                print(preguntaEnsayo)
                 preguntasDeActividad.append(preguntaEnsayo)
         
         return preguntasDeActividad
