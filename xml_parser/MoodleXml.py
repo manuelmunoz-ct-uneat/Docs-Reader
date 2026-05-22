@@ -28,7 +28,7 @@ class MoodleXml:
         else:
             bloquePregunta += f'<![CDATA[ <p>{pregunta.preg}</p> ]]>'
 
-        bloquePregunta += ("""</text>
+        bloquePregunta += (f"""</text>
                 </questiontext>
                 <generalfeedback format="html">
                     <text/>
@@ -58,8 +58,8 @@ class MoodleXml:
                 </incorrectfeedback>
                 <shownumcorrect/>
             """).strip()  + "\n"
-        for respuesta in respuestas: # type: ignore[attr-defined]
-            respuesta: OpcionDeRespuestaDto
+        for respuesta in respuestas:
+            respuesta = OpcionDeRespuestaDto(**respuesta)
             bloque = ""
             xmlContent = textwrap.dedent(f"""
                 <answer fraction="{MoodleXml.asignarPuntaje(puntaje, respuesta.ok)}" format="html">
@@ -304,8 +304,8 @@ class MoodleXml:
                 <idnumber/>
         """).strip()  + "\n"
         
-        for respuesta in respuestas: # type: ignore[attr-defined]
-            respuesta: OpcionDeRespuestaDto
+        for respuesta in respuestas:
+            respuesta = OpcionDeRespuestaDto(**respuesta)
             bloque = ""
             xmlContent = textwrap.dedent(f"""
                 <answer fraction="{MoodleXml.asignarPuntaje("100", respuesta.ok)}" format="moodle_auto_format">
@@ -338,7 +338,7 @@ class MoodleXml:
         xmlContent = textwrap.dedent(f"""
                 <question type="category">
                     <category>
-                        <text>$course$/top/{bloqueDeCategoria.courseLang}/{MoodleXml.tipoActividad(bloqueDeCategoria.courseActv)}</text>
+                        <text>$course$/top/{bloqueDeCategoria.courseLang}/{MoodleXml.tipoActividad(str(bloqueDeCategoria.courseActv))}</text>
                     </category>
                     <info format="html">
                         <text/>

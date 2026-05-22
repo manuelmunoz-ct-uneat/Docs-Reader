@@ -9,7 +9,7 @@ from xml_parser.XmlParser import XmlParser
 class WordUploadWidget(QWidget):
     FILE_FILTER = 'Word file (*.doc *.docx)'
     dtoData = []
-    courseInfo = paragraph = ""
+    courseInfo = json = ""
     def __init__(self):
         super().__init__()
         self.window_width, self.window_height = 400, 100
@@ -35,12 +35,12 @@ class WordUploadWidget(QWidget):
     def launchDialog(self):
             option = self.options.index(self.combo.currentText())
             if option == 0:
-                self.courseInfo = self.getFileName()
+                self.getFileName()
                 document = FileReader(self.courseInfo)
-                self.paragraph = document.parse_to_json()
-                self.textbox.setJson(self.paragraph)
+                self.json = document.parse_to_json()
+                self.textbox.setJson(self.json)
             elif option == 1:
-                dtoData = Mapper.tipoPregunta(self.courseInfo, self.paragraph)
+                dtoData = Mapper.tipoPregunta(self.courseInfo, self.json)
                 xmlInfo = XmlParser.parse(dtoData)
                 self.saveFile(xmlInfo)
             else:
@@ -54,8 +54,11 @@ class WordUploadWidget(QWidget):
             "",
             filter=self.FILE_FILTER,
         )
-        return Path(response)
-    
+
+        if response:
+            self.courseInfo = response or self.courseInfo
+        
+
     def saveFile(self, infoXml):
 
         ruta, _ = QFileDialog.getSaveFileName(

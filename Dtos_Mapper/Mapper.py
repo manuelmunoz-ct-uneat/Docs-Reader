@@ -9,19 +9,20 @@ class Mapper():
 
     @staticmethod
     def procesarCurso(course_route):
-        courseCodeRegex = r'^[A-Z]{2,4}\d{3,4}$'
+        courseCodeRegex = r'^[A-Za-z]{2,4}\d{3,4}$'
         courseActivityType = {'co', 'rec01', 'rec02', 'test', 'tarea'}
         courseActivityLang = {'esp', 'ing', 'fra', 'por'}
         
         course_route = str(course_route)
-        course = course_route[(course_route.rfind('\\')+1):course_route.rfind('.')].split('-')
+        course = course_route[(course_route.rfind('/')+1):course_route.rfind('.')].split('-')
         course[len(course)-1] = course[len(course)-1].split('_')[0]
 
-        courseData = CourseDataDto
+        print(course)
+        courseData: CourseDataDto = CourseDataDto()
 
         for data in course:
             if re.match(courseCodeRegex, data):
-                courseData.courseId =  data
+                courseData.courseId = data
             elif data.lower() in courseActivityType:
                 courseData.courseActv = data
             elif data.lower() in courseActivityLang:
@@ -49,7 +50,6 @@ class Mapper():
                 preguntasDeActividad.append(preguntaVerdaderoFalso)
             elif data.get("tipo") == "ensayo":
                 preguntaEnsayo = PreguntaEnsayoDto.from_dict(data, numPregunta, datosActividad)
-                print(preguntaEnsayo)
                 preguntasDeActividad.append(preguntaEnsayo)
         
         return preguntasDeActividad
