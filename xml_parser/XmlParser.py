@@ -29,7 +29,5 @@ class XmlParser:
                 xmlDocument += MoodleXml.crearNuevaCategoria(question)
                 
         xmlDocument += "</quiz>"
-
-        with open("documento_xml.xml", "w", encoding="utf-8") as file:
-            file.write(xmlDocument)
+        return xmlDocument
             
