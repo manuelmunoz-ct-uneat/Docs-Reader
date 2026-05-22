@@ -3,7 +3,7 @@ from typing import Dict
 
 class OpcionDeRespuestaEnsayoDto(BaseModel):
     txt: str | dict[str, str]
-    tabla: dict[str, dict] | None
+    tabla: dict[str, dict] | None = None
     img: dict[str, str] | None = None
 
 
