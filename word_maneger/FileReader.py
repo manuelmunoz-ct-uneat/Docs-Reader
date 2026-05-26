@@ -257,8 +257,6 @@ class FileReader:
                 numPr = elem._element.xpath('./w:pPr/w:numPr')
                 self.setData(numPr, data, idx, texto, origen or 'parrafo', estilo)
                 idx += 1
-        with open('datos_crudos.json', 'w', encoding='utf-8') as file:
-            json.dump(data, file, indent=4, ensure_ascii=False)
         return data
 
     # ══════════════════════════════════════════════════════════════════════
@@ -486,8 +484,6 @@ class FileReader:
 
         resultado = self.asignar_tipo(resultado)
 
-        with open('datos.json', 'w', encoding='utf-8') as file:
-            json.dump(resultado, file, indent=4, ensure_ascii=False)
         return resultado
 
     # ══════════════════════════════════════════════════════════════════════

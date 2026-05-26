@@ -17,7 +17,6 @@ class Mapper():
         course = course_route[(course_route.rfind('/')+1):course_route.rfind('.')].split('-')
         course[len(course)-1] = course[len(course)-1].split('_')[0]
 
-        print(course)
         courseData: CourseDataDto = CourseDataDto()
 
         for data in course:
