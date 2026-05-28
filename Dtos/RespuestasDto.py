@@ -18,7 +18,7 @@ class RespuestaDto(BaseModel):
         respuestas = {}
         for key, value in data.items():
             respuestas[key] = OpcionDeRespuestaDto(
-                txt=value.get("txt", ""),
+                txt=value.get("moodle"),
                 retro=value.get("retro", ""),
                 ok=value.get("ok", False),
                 img=value.get("img", None)
