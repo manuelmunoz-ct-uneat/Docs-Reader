@@ -11,8 +11,8 @@ class JsonFormater(QTextBrowser):
 
         for num_pregunta, bloque in data.items():
             html_content += (
-                f'<p><b>{num_pregunta}</b>: {html.escape(bloque.get('preg', ''))}<br>'
-                f'<b>Tipo</b>: {html.escape(bloque.get('tipo'))}</p>'
+                f'<p><b>{num_pregunta}</b>: {bloque.get('preg', '')}<br>'
+                f'<b>Tipo</b>: {bloque.get('tipo')}</p>'
                 )
             if 'img' in bloque:
                 html_content += f'<br><img src="data:image/{bloque['img'].get('fmt')};base64, {bloque['img'].get('b64')}"/>'
@@ -25,7 +25,7 @@ class JsonFormater(QTextBrowser):
                         html_content += '<tr>'
 
                         for columna in fila.values():
-                            html_content += f'<td>{html.escape(str(columna))}</td>'
+                            html_content += f'<td>{(columna)}</td>'
 
                         html_content += '</tr>'
                     html_content += '</table>'
@@ -36,7 +36,7 @@ class JsonFormater(QTextBrowser):
                             html_content += (
                                 f'<p style="margin-left:20px;">'
                                 f'<b>{letra})</b> '
-                                f'<span style="color:fuchsia">{html.escape(str(opcion.get('txt')))}</span><br>'
+                                f'<span style="color:fuchsia">{opcion.get('txt')}</span><br>'
                                 f'</p>'
                             )
                         elif tipo == 'tablas':
@@ -48,13 +48,13 @@ class JsonFormater(QTextBrowser):
                                 for contenido in fila.values():
                                     if "img" in contenido:
                                         html_content += (
-                                            f'<td>{html.escape(str(contenido.get("txt")))}</td>'
+                                            f'<td>{contenido.get('txt')}</td>'
                                             f'<br>'
                                             f'<img src="data:image/{contenido['img'].get('fmt')};base64, {contenido['img'].get('b64')}"/>'
                                             )
                                         continue
                                     else:                                        
-                                        html_content += f'<td>{html.escape(str(contenido))}</td>'
+                                        html_content += f'<td>{contenido}</td>'
                                         continue
 
                                 html_content += '</tr>'
@@ -66,10 +66,10 @@ class JsonFormater(QTextBrowser):
                     color = 'green' if opcion.get("ok") is True else 'red' if opcion.get("ok") is False else 'FloralWhite'
                     html_content += f'<p style="margin-left:20px;">'
                     html_content += f'<b>{letra})</b> '
-                    html_content += f'<span style="color:{color}">{html.escape(str(opcion.get('txt')))}</span><br>'
+                    html_content += f'<span style="color:{color}">{opcion.get('txt')}</span><br>'
                     if 'img' in opcion:
                         html_content += f'<img src="data:image/{opcion['img'].get('fmt')};base64, {opcion['img'].get('b64')}"/><br>'
-                    html_content += f'<span style="color:fuchsia">{html.escape(str(opcion.get('retro')))}</span></p>'
+                    html_content += f'<span style="color:fuchsia">{opcion.get('retro')}</span></p>'
 
         self.setHtml(html_content)
         font = self.font()

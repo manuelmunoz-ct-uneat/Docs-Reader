@@ -1,5 +1,5 @@
 import zipfile
-import re as _re
+import re as re
 from lxml import etree
 import json
 import base64 as _b64
@@ -7,6 +7,7 @@ import base64 as _b64
 from docx import Document
 from docx.table import Table, _Cell
 from docx.text.paragraph import Paragraph
+from docx import text
 from docx.document import Document as DocxDocument
 
 # ── Namespaces ──────────────────────────────────────────────────────────
@@ -28,6 +29,14 @@ W_TYPE   = f'{{{W}}}type'
 R_ID     = f'{{{R_NS}}}id'
 TXBX_TAG = f'{{{WPS}}}txbx'
 TXBC_TAG = f'{{{W}}}txbxContent'
+W_R      = f'{{{W}}}r'
+W_RPR    = f'{{{W}}}rPr'
+W_B      = f'{{{W}}}b'
+W_I      = f'{{{W}}}i'
+W_U_TAG  = f'{{{W}}}u'
+W_STRIKE = f'{{{W}}}strike'
+W_COLOR  = f'{{{W}}}color'
+W_BR     = f'{{{W}}}br'
 A_NS   = 'http://schemas.openxmlformats.org/drawingml/2006/main'
 R_EMB  = '{http://schemas.openxmlformats.org/officeDocument/2006/relationships}embed'
 
@@ -94,7 +103,7 @@ class FileReader:
             rels_raw = z.read('word/_rels/document.xml.rels').decode('utf-8')
             rid_to_file = {
                 m.group(1): m.group(2)
-                for m in _re.finditer(
+                for m in re.finditer(
                     r'Id="(rId\d+)"[^>]*Target="(header\d+\.xml)"', rels_raw
                 )
             }
@@ -153,7 +162,7 @@ class FileReader:
             return None, texto, None
 
         # Dividir en frases separadas por '. ' o '. \n'
-        partes = _re.split(r'\.\s+', texto.rstrip('.'))
+        partes = re.split(r'\.\s+', texto.rstrip('.'))
 
         for i, parte in enumerate(partes):
             primera_palabra = parte.strip().split()[0] if parte.strip() else ''
@@ -184,6 +193,8 @@ class FileReader:
         '''
         data: dict[int, dict] = {}
         idx  = 0
+        origen_bloque_anterior = ''
+        estilo_bloque_anterior = ''
 
         for elem, origen in self.iter_all_blocks(self.document):
 
@@ -222,8 +233,9 @@ class FileReader:
 
             # ── Paragraph normal ───────────────────────────────────────
             else:
-                texto = (elem.text or '')
-                texto = texto.replace('\t', '__________')
+                texto_plano, html_inline = self._runs_a_html(elem._element)
+                texto = texto_plano.replace('\\t', '__________')
+                html = html_inline.replace('\\t', '__________')
 
                 # Extraer estilo del párrafo para detectar preguntas de ensayo
                 ppr   = elem._element.find(f'{{{W}}}pPr')
@@ -232,6 +244,11 @@ class FileReader:
                     ps = ppr.find(f'{{{W}}}pStyle')
                     if ps is not None:
                         estilo = ps.get(f'{{{W}}}val', '')
+
+                if estilo == 'aP-Razon' and estilo_bloque_anterior == 'aP-Razon' and origen == 'parrafo' and origen_bloque_anterior == 'parrafo':
+                    lista_html = list(html)
+                    lista_html.insert(0, '<br>')
+                    html = ''.join(lista_html)
 
                 # Detectar imagen embebida (w:drawing → a:blip)
                 blips  = elem._element.findall(f'.//{{{A_NS}}}blip')
@@ -243,6 +260,7 @@ class FileReader:
                             if img_b64:
                                 data[idx] = {
                                     'texto':    texto.strip(),
+                                    'html':     html.strip(),
                                     'nivel':    None,
                                     'lista_id': None,
                                     'origen':   origen or 'parrafo',
@@ -255,8 +273,11 @@ class FileReader:
                 if not texto.strip():
                     continue
                 numPr = elem._element.xpath('./w:pPr/w:numPr')
-                self.setData(numPr, data, idx, texto, origen or 'parrafo', estilo)
+                self.setData(numPr, data, idx, texto, origen or 'parrafo', estilo, html)
+                origen_bloque_anterior = origen
+                estilo_bloque_anterior = estilo
                 idx += 1
+                
         with open('datos_crudos.json', 'w', encoding='utf-8') as file:
             json.dump(data, file, indent=4, ensure_ascii=False)
         return data
@@ -279,7 +300,7 @@ class FileReader:
         en_modo_ensayo:  bool        = False  # True sólo cuando el marcador aP-Respuesta fue visto
 
         for _, item in data.items():
-            texto    = item['texto']    
+            texto    = item['texto'] 
             nivel    = item['nivel']
             lista_id = item.get('lista_id')
             origen   = item.get('origen', 'parrafo')
@@ -293,7 +314,7 @@ class FileReader:
             if estilo == 'aPREGUNTA':
                 num_pregunta += 1
                 resultado[num_pregunta] = {
-                    'preg':  texto,
+                    'preg':  item.get('html', texto),
                     'val':   None,
                     'tipo':  None,
                     'ops':   {},
@@ -351,8 +372,10 @@ class FileReader:
                     and estilo not in ('aPREGUNTA', 'ListParagraph')):
                 op = pregunta_actual['ops']['a']
                 prefijo   = self._prefijo_viñeta(estilo, nivel)
+                html_p = item.get('html', texto)
                 separador = '\n' if op['txt'] else ''
-                op['txt'] = op['txt'] + separador + prefijo + texto
+                op['txt'] = op['txt'] + separador + prefijo + html_p
+                op['html'] = f'<p>{html_p}</p>'
                 continue
 
             # ── Tabla → filas como opciones ────────────────────────────
@@ -389,7 +412,7 @@ class FileReader:
             if origen.startswith('header') and pregunta_actual is not None:
                 if nivel == 0:
                     nivel = 1
-                elif nivel is None and _re.match(r'^[a-dA-D]\)', texto.strip()):
+                elif nivel is None and re.match(r'^[a-dA-D]\)', texto.strip()):
                     nivel = 1
 
             # ── FIX B: nivel=0 con lista_id diferente (Word rompió ────
@@ -421,13 +444,15 @@ class FileReader:
                 if es_retro_ensayo:
                     op = pregunta_actual['ops']['a'] # type: ignore[attr-defined]
                     prefijo   = self._prefijo_viñeta(estilo, nivel)
-                    separador = '\n' if op['txt'] else ''
-                    op['txt'] = op['txt'] + separador + prefijo + texto
+                    html_p = item.get('html', texto)
+                    separador = '\n' if op['json'] else ''
+                    op['json'] = op['json'] + separador + prefijo + html_p
+                    op['html'] = f'<p>{html_p}</p>'
                     continue
 
                 num_pregunta += 1
                 resultado[num_pregunta] = {
-                    'preg':  texto,
+                    'preg':  item.get('html', texto),
                     'val':   None,
                     'tipo':  None,
                     'ops':   {},
@@ -442,17 +467,19 @@ class FileReader:
             if nivel == 1 and pregunta_actual is not None:
                 letra  = chr(ord('a') + len(pregunta_actual['ops']))
                 # Limpiar prefijo 'a) / b)' hardcodeado (text-boxes de header)
-                texto_limpio = _re.sub(r'^[a-dA-D]\)\s*', '', texto).strip()
+                texto_limpio = re.sub(r'^[a-dA-D]\)\s*', '', texto).strip()
+                html_limpio = re.sub(r'^[a-dA-D]\)\s*', '', item.get('html', texto)).strip()
                 ok_val, txt_op, retro_inline = self._split_feedback(texto_limpio)
 
                 # Cuando txt_op es None significa que el texto completo era una
                 # sola 'palabra de feedback' (ej. 'Verdadeiro.'). En un nivel=1
                 # eso es el texto de la opción, no feedback inline → resetear.
                 if txt_op is None:
-                    txt_op, ok_val, retro_inline = texto_limpio, None, None
+                    txt_op, ok_val, retro_inline = html_limpio, None, None
 
                 pregunta_actual['ops'][letra] = {
-                    'txt':   txt_op,
+                    'json':   txt_op,
+                    'html':   '',
                     'ok':    ok_val,
                     'retro': retro_inline,
                 }
@@ -610,7 +637,7 @@ class FileReader:
     # ══════════════════════════════════════════════════════════════════════
     # setData helpers
     # ══════════════════════════════════════════════════════════════════════
-    def setData(self, numPr, data, idx, texto, origen, estilo=''):
+    def setData(self, numPr, data, idx, texto, origen, estilo='', html=''):
         '''Para Paragraph / python-docx (usa .xpath).'''
         nivel = lista_id = None
         if numPr:
@@ -620,6 +647,7 @@ class FileReader:
             lista_id = int(numid[0].get(f'{{{W}}}val'))
         data[idx] = {
             'texto':    texto,
+            'html': html or '',
             'nivel':    nivel,
             'lista_id': lista_id,
             'origen':   origen,
@@ -650,8 +678,8 @@ class FileReader:
         try:
             with zipfile.ZipFile(self.doc_path) as z:  # type: ignore[attr-defined]
                 rels_raw = z.read('word/_rels/document.xml.rels').decode('utf-8')
-                m = _re.search(
-                    r'Id="' + _re.escape(rid) + r'"[^>]*Target="(media/[^"]+)"', rels_raw
+                m = re.search(
+                    r'Id="' + re.escape(rid) + r'"[^>]*Target="(media/[^"]+)"', rels_raw
                 )
                 if not m:
                     return None
@@ -724,3 +752,66 @@ class FileReader:
                 pregunta['tipo'] = 'multi'
 
         return datos
+    
+    @staticmethod
+    def _runs_a_html(p_elem) -> tuple[str, str]:
+        '''
+        Recorre los runs (<w:r>) de un elemento párrafo y devuelve:
+          texto_plano : str  — texto concatenado sin formato
+          html_inline : str  — texto con marcado HTML inline
+
+        Formatos soportados:
+          <w:b/>      → <strong>…</strong>
+          <w:i/>      → <em>…</em>
+          <w:u/>      → <u>…</u>
+          <w:strike/> → <s>…</s>
+          <w:color/>  → <span style="color:#RRGGBB">…</span>
+          <w:br/>     → <br>   (salto de línea dentro del párrafo)
+
+        Nota: <w:b w:val="0"/> significa "sin negrita" (override de estilo),
+        por lo que se comprueba el atributo val antes de activar el formato.
+        '''
+
+        partes_plano: list[str] = []
+        partes_html:  list[str] = []
+
+        for run in p_elem:
+            if run.tag != W_R:
+                continue
+
+            rpr   = run.find(W_RPR)
+            bold  = FileReader._activo(rpr, W_B)
+            ital  = FileReader._activo(rpr, W_I)
+            uline = FileReader._activo(rpr, W_U_TAG)
+            strk  = FileReader._activo(rpr, W_STRIKE)
+
+            # Color personalizado (ignorar automático / "none" / "auto")
+          
+            for child in run:
+                if child.tag == W_T:
+                    t = child.text or ''
+                    partes_plano.append(t)
+
+                    # Aplicar formato
+                    if strk:  t = f'<s>{t}</s>'
+                    if uline: t = f'<u>{t}</u>'
+                    if ital:  t = f'<em>{t}</em>'
+                    if bold:  t = f'<strong>{t}</strong>'
+                    partes_html.append(t)
+
+                elif child.tag == W_BR:
+                    partes_plano.append('\\n')
+                    partes_html.append('<br>')
+
+        return ''.join(partes_plano), ''.join(partes_html)
+
+    @staticmethod
+    def _activo(rpr, tag):
+            '''True si el elemento de formato está presente y no desactivado.'''
+            el = rpr.find(tag) if rpr is not None else None
+            if el is None:
+                return False
+            val = el.get(W_VAL, '1')
+            return val not in ('0', 'false', 'off')
+
+    
