@@ -10,6 +10,7 @@ class MoodleXml:
     def preguntaOpcionMultiple(pregunta: PreguntaOpcionMultipleDto, cantidadCorrectas: int):
         puntaje = MoodleXml.calcularPuntaje(cantidadCorrectas)
         respuestas = [MoodleXml.respuestasDePregunta(bloquePregunta) for bloquePregunta in pregunta.respuestas.respuestas.values()]
+        imagenes = ''
         bloquePregunta = "\t"
         bloquePregunta += (f"""
             <question type="multichoice">
@@ -24,11 +25,13 @@ class MoodleXml:
             imagen = pregunta.img.get("b64")
             formato = pregunta.img.get("fmt")
             bloquePregunta += f'<![CDATA[ <p>{pregunta.preg}</p> <p><img class="img-fluid" src="@@PLUGINFILE@@/{nombreDeImagen}.{formato}"></p> ]]>'
-            bloquePregunta += MoodleXml.crearBloqueImagen(nombreDeImagen, imagen, formato)
+            imagenes += MoodleXml.crearBloqueImagen(nombreDeImagen, imagen, formato)
         else:
             bloquePregunta += f'<![CDATA[ <p>{pregunta.preg}</p> ]]>'
 
-        bloquePregunta += (f"""</text>
+        bloquePregunta += '</text>\n'
+        bloquePregunta += imagenes
+        bloquePregunta += (f"""
                 </questiontext>
                 <generalfeedback format="html">
                     <text/>
@@ -125,7 +128,7 @@ class MoodleXml:
                 imagen = respuesta.img.get("b64")
                 formato = respuesta.img.get("fmt")
                 
-                cData += f'<p>{respuesta.txt}</p> <p><img class="img-fluid" src="@@PLUGINFILE@@/{nombreDeImagen}.{formato}">'
+                cData += f'<p>{respuesta.txt}</p> <p><img class="img-fluid" src="@@PLUGINFILE@@/{nombreDeImagen}.{formato}"></p>'
                 imagenes += MoodleXml.crearBloqueImagen(nombreDeImagen, imagen, formato)
             
             else:
