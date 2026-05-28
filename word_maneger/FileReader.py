@@ -205,11 +205,12 @@ class FileReader:
                     matriz[f'f{i}'] = {}
                     for j, cell in enumerate(row.cells):
                         img = self.detectar_blip(cell)   # lista o None
+                        txt_celda = cell.text.strip()
                         if img:
                             # Celda con imagen(es): guardar texto + lista de imgs
-                            matriz[f'f{i}'][f'c{j}'] = {"txt": cell.text.strip(), "img": img}
+                            matriz[f'f{i}'][f'c{j}'] = {"txt": txt_celda, "moodle": txt_celda, "img": img}
                         else:
-                            matriz[f'f{i}'][f'c{j}'] = cell.text.strip()
+                            matriz[f'f{i}'][f'c{j}'] = txt_celda
 
                 if not any(t for fila in matriz.values() for t in fila.values()):
                     continue  # tabla vacía
@@ -233,9 +234,9 @@ class FileReader:
 
             # ── Paragraph normal ───────────────────────────────────────
             else:
-                texto_plano, html_inline = self._runs_a_html(elem._element)
+                texto_plano, moodle_inline = self._runs_a_html(elem._element)
                 texto = texto_plano.replace('\\t', '__________')
-                html = html_inline.replace('\\t', '__________')
+                moodle = moodle_inline.replace('\\t', '__________')
 
                 # Extraer estilo del párrafo para detectar preguntas de ensayo
                 ppr   = elem._element.find(f'{{{W}}}pPr')
@@ -246,9 +247,9 @@ class FileReader:
                         estilo = ps.get(f'{{{W}}}val', '')
 
                 if estilo == 'aP-Razon' and estilo_bloque_anterior == 'aP-Razon' and origen == 'parrafo' and origen_bloque_anterior == 'parrafo':
-                    lista_html = list(html)
-                    lista_html.insert(0, '<br>')
-                    html = ''.join(lista_html)
+                    lista_moodle = list(moodle)
+                    lista_moodle.insert(0, '<br>')
+                    moodle = ''.join(lista_moodle)
 
                 # Detectar imagen embebida (w:drawing → a:blip)
                 blips  = elem._element.findall(f'.//{{{A_NS}}}blip')
@@ -260,7 +261,7 @@ class FileReader:
                             if img_b64:
                                 data[idx] = {
                                     'texto':    texto.strip(),
-                                    'html':     html.strip(),
+                                    'moodle':     moodle.strip() or texto.strip(),
                                     'nivel':    None,
                                     'lista_id': None,
                                     'origen':   origen or 'parrafo',
@@ -273,7 +274,7 @@ class FileReader:
                 if not texto.strip():
                     continue
                 numPr = elem._element.xpath('./w:pPr/w:numPr')
-                self.setData(numPr, data, idx, texto, origen or 'parrafo', estilo, html)
+                self.setData(numPr, data, idx, texto, origen or 'parrafo', estilo, moodle)
                 origen_bloque_anterior = origen
                 estilo_bloque_anterior = estilo
                 idx += 1
@@ -311,7 +312,7 @@ class FileReader:
             if estilo == 'aPREGUNTA':
                 num_pregunta += 1
                 resultado[num_pregunta] = {
-                    'preg':  item.get('html', texto),
+                    'preg':  item.get('moodle', texto),
                     'val':   None,
                     'tipo':  None,
                     'ops':   {},
@@ -329,7 +330,7 @@ class FileReader:
                 opcion_actual  = 'a'
                 en_modo_ensayo = True
                 if 'a' not in pregunta_actual['ops']:
-                    pregunta_actual['ops']['a'] = {'txt': ''}
+                    pregunta_actual['ops']['a'] = {'txt': '', 'moodle': ''}
                 continue
 
             # ── Imagen: tres destinos posibles ───────────────────────────
@@ -369,10 +370,10 @@ class FileReader:
                     and estilo not in ('aPREGUNTA', 'ListParagraph')):
                 op = pregunta_actual['ops']['a']
                 prefijo   = self._prefijo_viñeta(estilo, nivel)
-                html_p = item.get('html', texto)
+                moodle_p = item.get('moodle', texto)
                 separador = '\n' if op['txt'] else ''
-                op['txt'] = op['txt'] + separador + prefijo + html_p
-                op['html'] = f'<p>{html_p}</p>'
+                op['txt'] = op['txt'] + separador + prefijo + moodle_p
+                op['moodle'] = FileReader.convertir_a_formato_moodle(op.get('txt'))
                 continue
 
             # ── Tabla → filas como opciones ────────────────────────────
@@ -441,15 +442,15 @@ class FileReader:
                 if es_retro_ensayo:
                     op = pregunta_actual['ops']['a'] # type: ignore[attr-defined]
                     prefijo   = self._prefijo_viñeta(estilo, nivel)
-                    html_p = item.get('html', texto)
-                    separador = '\n' if op['json'] else ''
-                    op['json'] = op['json'] + separador + prefijo + html_p
-                    op['html'] = f'<p>{html_p}</p>'
+                    moodle_p = item.get('html', texto)
+                    separador = '\n' if op['txt'] else ''
+                    op['txt'] = op['txt'] + separador + prefijo + moodle_p
+                    op['moodle'] = FileReader.convertir_a_formato_moodle(op.get('txt'))
                     continue
 
                 num_pregunta += 1
                 resultado[num_pregunta] = {
-                    'preg':  item.get('html', texto),
+                    'preg':  item.get('moodle', texto),
                     'val':   None,
                     'tipo':  None,
                     'ops':   {},
@@ -465,18 +466,18 @@ class FileReader:
                 letra  = chr(ord('a') + len(pregunta_actual['ops']))
                 # Limpiar prefijo 'a) / b)' hardcodeado (text-boxes de header)
                 texto_limpio = re.sub(r'^[a-dA-D]\)\s*', '', texto).strip()
-                html_limpio = re.sub(r'^[a-dA-D]\)\s*', '', item.get('html', texto)).strip()
+                moodle_limpio = re.sub(r'^[a-dA-D]\)\s*', '', item.get('moodle', texto)).strip()
                 ok_val, txt_op, retro_inline = self._split_feedback(texto_limpio)
 
                 # Cuando txt_op es None significa que el texto completo era una
                 # sola 'palabra de feedback' (ej. 'Verdadeiro.'). En un nivel=1
                 # eso es el texto de la opción, no feedback inline → resetear.
                 if txt_op is None:
-                    txt_op, ok_val, retro_inline = html_limpio, None, None
+                    txt_op, ok_val, retro_inline = moodle_limpio, None, None
 
                 pregunta_actual['ops'][letra] = {
-                    'json':   txt_op,
-                    'html':   '',
+                    'txt':   txt_op,
+                    'moodle':   FileReader.convertir_a_formato_moodle(txt_op) if txt_op else '',
                     'ok':    ok_val,
                     'retro': retro_inline,
                 }
@@ -509,6 +510,9 @@ class FileReader:
                     opcion_actual = None
 
         resultado = self.asignar_tipo(resultado)
+
+        with open('datos.json', 'w', encoding='utf-8') as file:
+            json.dump(resultado, file, indent=4, ensure_ascii=False)
 
         return resultado
 
@@ -632,7 +636,7 @@ class FileReader:
     # ══════════════════════════════════════════════════════════════════════
     # setData helpers
     # ══════════════════════════════════════════════════════════════════════
-    def setData(self, numPr, data, idx, texto, origen, estilo='', html=''):
+    def setData(self, numPr, data, idx, texto, origen, estilo='', moodle=''):
         '''Para Paragraph / python-docx (usa .xpath).'''
         nivel = lista_id = None
         if numPr:
@@ -642,7 +646,7 @@ class FileReader:
             lista_id = int(numid[0].get(f'{{{W}}}val'))
         data[idx] = {
             'texto':    texto,
-            'html': html or '',
+            'moodle': moodle or texto,
             'nivel':    nivel,
             'lista_id': lista_id,
             'origen':   origen,
@@ -660,6 +664,7 @@ class FileReader:
             if numid is not None: lista_id = int(numid.get(W_VAL))
         data[idx] = {
             'texto':    texto,
+            'moodle': texto,
             'nivel':    nivel,
             'lista_id': lista_id,
             'origen':   origen,
@@ -808,5 +813,33 @@ class FileReader:
                 return False
             val = el.get(W_VAL, '1')
             return val not in ('0', 'false', 'off')
+    
+    @staticmethod
+    def convertir_a_formato_moodle(texto_ui: str) -> str:
+        """
+        Convierte un texto con formato de visualización (<p>...<br>...</p>) 
+        al formato estricto requerido por Moodle XML (<p>...</p>\n<p>...</p>).
+        """
+        print(texto_ui)
+        if not texto_ui:
+            return ""
+
+        # 1. Limpiar las etiquetas <p> y </p> exteriores si el texto ya las trae
+        texto_limpio = re.sub(r'^<p>\s*', '', texto_ui.strip())
+        texto_limpio = re.sub(r'\s*</p>$', '', texto_limpio)
+        
+        # 2. Dividir el texto usando <br> como separador 
+        # (El regex soporta variaciones como <br>, <br/>, <br />)
+        fragmentos = re.split(r'<br\s*/?>', texto_limpio)
+        
+        # 3. Envolver cada fragmento válido en su propia etiqueta <p>
+        parrafos_moodle = []
+        for frag in fragmentos:
+            frag_limpio = frag.strip()
+            if frag_limpio:  # Evita crear <p></p> vacíos si hay dos <br> juntos
+                parrafos_moodle.append(f"<p>{frag_limpio}</p>")
+        
+        # 4. Unir todo con un salto de línea real para que el XML quede legible
+        return '\n'.join(parrafos_moodle)
 
     
