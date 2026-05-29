@@ -64,23 +64,39 @@ class MoodleXml:
         for respuesta in respuestas:
             respuesta = OpcionDeRespuestaDto(**respuesta)
             bloque = ""
-            xmlContent = textwrap.dedent(f"""
-                <answer fraction="{MoodleXml.asignarPuntaje(puntaje, respuesta.ok)}" format="html">
-                    <text>
-                        <![CDATA[ <p>{respuesta.txt}</p> ]]>
-                    </text>
-                    <feedback format="html">
-                        <text>
-                            <![CDATA[ <p>{respuesta.retro}</p> ]]>
-                        </text>
-                    </feedback>
-            """).strip() + "\n"
+            xmlContent = ""
 
             if respuesta.img is not None:
                 nombreDeImagen = MoodleXml.crearNombreImg()
                 imagen = respuesta.img.get("b64")
                 formato = respuesta.img.get("fmt")
+
+                xmlContent += textwrap.dedent(f"""
+                    <answer fraction="{MoodleXml.asignarPuntaje(puntaje, respuesta.ok)}" format="html">
+                        <text>
+                            <![CDATA[ {respuesta.txt} <p><img class="img-fluid" src="@@PLUGINFILE@@/{nombreDeImagen}.{formato}"></p> ]]>
+                        </text>
+                        <feedback format="html">
+                            <text>
+                                <![CDATA[ <p>{respuesta.retro}</p> ]]>
+                            </text>
+                        </feedback>
+                """).strip() + "\n"
+
                 xmlContent += MoodleXml.crearBloqueImagen(nombreDeImagen, imagen, formato)
+            else:
+                xmlContent = textwrap.dedent(f"""
+                    <answer fraction="{MoodleXml.asignarPuntaje(puntaje, respuesta.ok)}" format="html">
+                        <text>
+                            <![CDATA[ {respuesta.txt} ]]>
+                        </text>
+                        <feedback format="html">
+                            <text>
+                                <![CDATA[ <p>{respuesta.retro}</p> ]]>
+                            </text>
+                        </feedback>
+                """).strip() + "\n"
+
             
             xmlContent += "</answer>\n"
 
@@ -128,15 +144,15 @@ class MoodleXml:
                 imagen = respuesta.img.get("b64")
                 formato = respuesta.img.get("fmt")
                 
-                cData += f'<p>{respuesta.txt}</p> <p><img class="img-fluid" src="@@PLUGINFILE@@/{nombreDeImagen}.{formato}"></p>'
+                cData += f'{respuesta.txt} <p><img class="img-fluid" src="@@PLUGINFILE@@/{nombreDeImagen}.{formato}"></p>'
                 imagenes += MoodleXml.crearBloqueImagen(nombreDeImagen, imagen, formato)
             
             else:
-                cData += f"<p>{respuesta.txt}</p>"
+                cData += f"{respuesta.txt}"
             
             
             if respuesta.tabla is not None:
-                cData += f'<p>{respuesta.txt}</p> <table style="border-collapse: collapse; width: 100%;" border="1"><colgroup><col style="width: 33.3333%;"><col style="width: 33.3333%;"><col style="width: 33.3333%;"></colgroup> <tbody> '
+                cData += f'<table style="border-collapse: collapse; width: 100%;" border="1"><colgroup><col style="width: 33.3333%;"><col style="width: 33.3333%;"><col style="width: 33.3333%;"></colgroup> <tbody> '
                 for fila in respuesta.tabla.values():
                     cData += '<tr> '
 
@@ -166,8 +182,7 @@ class MoodleXml:
                 cData += '</tbody> </table>'
 
         cData += ' ]]>'
-        bloquePregunta += cData + "\n</text>"
-        bloquePregunta += imagenes + "\n"
+        bloquePregunta += cData + "\n</text>" + imagenes + "\n"
 
         bloquePregunta += ("""
                 </generalfeedback>
@@ -372,16 +387,15 @@ class MoodleXml:
     
     @staticmethod
     def tipoActividad(actividad: str):
-        if actividad == "CO":
-            return "examen"
-        elif actividad == "Test":
-            return "auto"
-        elif actividad == "Tarea":
-            return "reflexion"
-        elif actividad == "Rec01":
-            return "recuperacion 1"
-        elif actividad == "Rec02":
-            return "recuperacion 2"
+        if actividad == "CO": return "examen"
+        
+        elif actividad == "Test": return "auto"
+        
+        elif actividad == "Tarea": return "reflexion"
+        
+        elif actividad == "Rec01": return "recuperacion 1"
+        
+        elif actividad == "Rec02": return "recuperacion 2"
     
     @staticmethod
     def crearNombreImg():
