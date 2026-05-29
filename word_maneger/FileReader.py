@@ -510,10 +510,6 @@ class FileReader:
                     opcion_actual = None
 
         resultado = self.asignar_tipo(resultado)
-
-        with open('datos.json', 'w', encoding='utf-8') as file:
-            json.dump(resultado, file, indent=4, ensure_ascii=False)
-
         return resultado
 
     # ══════════════════════════════════════════════════════════════════════
@@ -820,7 +816,6 @@ class FileReader:
         Convierte un texto con formato de visualización (<p>...<br>...</p>) 
         al formato estricto requerido por Moodle XML (<p>...</p>\n<p>...</p>).
         """
-        print(texto_ui)
         if not texto_ui:
             return ""
 
