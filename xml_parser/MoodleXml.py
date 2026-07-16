@@ -40,7 +40,7 @@ class MoodleXml:
                 <penalty>0.3333333</penalty>
                 <hidden>0</hidden>
                 <idnumber/>
-                <single>{"true" if puntaje == "100" else "false"}</single>
+                <single>{"true" if puntaje == "100.0" else "false"}</single>
                 <shuffleanswers>true</shuffleanswers>
                 <answernumbering>abc</answernumbering>
                 <showstandardinstruction>0</showstandardinstruction>
